@@ -279,8 +279,8 @@ export default function Navbar() {
                                             <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-100/50 shadow-inner flex flex-col sm:flex-row gap-6 items-center">
 
                                                 {/* Left: QR Code (Larger & Prominent) */}
-                                                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-md shrink-0">
-                                                    <div className="relative w-32 h-32 sm:w-44 sm:h-44">
+                                                <div className="sm:bg-white sm:p-2 rounded-xl sm:border border-slate-100 sm:shadow-md shrink-0">
+                                                    <div className="relative w-64 h-64 sm:w-44 sm:h-44 mx-auto">
                                                         <img
                                                             src="/qr.jpeg"
                                                             alt="QRis Donasi"
