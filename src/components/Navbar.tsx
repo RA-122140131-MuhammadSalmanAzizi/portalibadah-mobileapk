@@ -13,7 +13,8 @@ import {
     X,
     Bell,
     Settings,
-    Trash2
+    Trash2,
+    Info
 } from "lucide-react";
 
 const navLinks = [
@@ -21,6 +22,7 @@ const navLinks = [
     { href: "/quran", label: "Al-Qur'an", icon: BookOpen },
     { href: "/sholat", label: "Jadwal Sholat", icon: Clock },
     { href: "/doa", label: "Doa Harian", icon: Heart },
+    { href: "/about", label: "Tentang", icon: Info },
 ];
 
 export default function Navbar() {

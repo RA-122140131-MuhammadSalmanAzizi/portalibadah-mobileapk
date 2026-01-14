@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { City, getAllCities } from "@/lib/api";
+import { Dialog } from '@capacitor/dialog';
+import { NativeSettings, AndroidSettings, IOSSettings } from 'capacitor-native-settings';
+import { Capacitor } from '@capacitor/core';
 
 interface LocationContextType {
     selectedCity: City | null;
@@ -29,7 +32,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
             try {
                 // Try fetching from API
                 const data = await getAllCities();
-                // getAllCities already handles fallback, but let's be double sure
                 if (data && data.length > 0) {
                     setCities(data);
                 } else {
@@ -58,10 +60,26 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("selectedCity", JSON.stringify(city));
     };
 
+    const openSettings = async () => {
+        if (Capacitor.getPlatform() === 'android') {
+            try {
+                await NativeSettings.open({
+                    optionAndroid: AndroidSettings.ApplicationDetails,
+                    optionIOS: IOSSettings.App
+                });
+            } catch (e) {
+                console.error("Failed to open settings", e);
+            }
+        }
+    };
+
     const detectLocation = async () => {
         setLoading(true);
         if (!("geolocation" in navigator)) {
-            alert("Geolocation tidak didukung di browser ini.");
+            await Dialog.alert({
+                title: 'Tidak Didukung',
+                message: 'Geolocation tidak didukung di perangkat/browser ini.',
+            });
             setLoading(false);
             return;
         }
@@ -76,50 +94,58 @@ export function LocationProvider({ children }: { children: ReactNode }) {
                     const data = await res.json();
 
                     if (data && data.address) {
-                        // Extract likely city name
-                        // Priority: city -> town -> village -> county (Kabupaten)
                         const rawCity = data.address.city || data.address.town || data.address.village || data.address.county || "";
-
-                        // Clean up "Kota" or "Kabupaten" prefixes if Nominatim includes them unnecessarily for search, 
-                        // but MyQuran API often likes "Kota ..." so we might try raw first or clean.
-                        // MyQuran Search is fuzzy. "Jakarta" finds "KOTA JAKARTA". "Bogor" finds "KAB. BOGOR" and "KOTA BOGOR".
                         const cleanCity = rawCity.replace(/(Kota|Kabupaten)\s+/i, '').trim();
 
                         if (cleanCity) {
-                            // Search in our API
                             const { searchCities } = await import("@/lib/api");
                             const searchResults = await searchCities(cleanCity);
 
                             if (searchResults && searchResults.length > 0) {
-                                // Prefer exact match or first result
-                                // If multiple (e.g. Kota Bogor & Kab Bogor), Pick the first one usually good enough or maybe prefer "KOTA" if user is in city?
-                                // For now, take the first result.
                                 handleSetCity(searchResults[0]);
-                                alert(`Lokasi terdeteksi: ${searchResults[0].lokasi}`);
+                                await Dialog.alert({
+                                    title: 'Lokasi Terdeteksi',
+                                    message: `Lokasi Anda: ${searchResults[0].lokasi}`,
+                                });
                             } else {
-                                alert(`Lokasi ditemukan (${cleanCity}) namun tidak ada dalam database jadwal sholat.`);
+                                await Dialog.alert({
+                                    title: 'Lokasi Tidak Ditemukan',
+                                    message: `Kami mendeteksi "${cleanCity}" namun tidak ada dalam database jadwal sholat kami.`,
+                                });
                             }
                         } else {
-                            alert("Gagal mendeteksi nama kota.");
+                            await Dialog.alert({ title: 'Gagal', message: 'Gagal mendeteksi nama kota.' });
                         }
                     } else {
-                        alert("Gagal mendapatkan informasi lokasi.");
+                        await Dialog.alert({ title: 'Gagal', message: 'Gagal mendapatkan informasi lokasi.' });
                     }
                 } catch (error) {
                     console.error("Error detecting location:", error);
-                    alert("Terjadi kesalahan saat mendeteksi lokasi.");
+                    await Dialog.alert({ title: 'Error', message: 'Terjadi kesalahan saat mendeteksi lokasi.' });
                 } finally {
                     setLoading(false);
                 }
             },
-            (error) => {
+            async (error) => {
                 console.error("Geolocation error:", error);
-                if (error.code === 1) { // PERMISSION_DENIED
-                    alert("Izin lokasi ditolak. Mohon aktifkan izin lokasi untuk menggunakan fitur ini.");
-                } else {
-                    alert("Gagal mendapatkan lokasi. Pastikan GPS aktif.");
-                }
                 setLoading(false);
+                if (error.code === 1) { // PERMISSION_DENIED
+                    const { value } = await Dialog.confirm({
+                        title: 'Izin Lokasi Ditolak',
+                        message: 'Aplikasi membutuhkan izin lokasi untuk mendeteksi kota Anda secara otomatis. Apakah Anda ingin membuka Pengaturan untuk mengaktifkannya?',
+                        okButtonTitle: 'Buka Pengaturan',
+                        cancelButtonTitle: 'Batal',
+                    });
+
+                    if (value) {
+                        await openSettings();
+                    }
+                } else {
+                    await Dialog.alert({
+                        title: 'Gagal',
+                        message: 'Gagal mendapatkan lokasi. Pastikan GPS aktif.',
+                    });
+                }
             }
         );
     };

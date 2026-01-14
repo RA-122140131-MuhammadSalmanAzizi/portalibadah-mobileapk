@@ -15,6 +15,8 @@ import {
     Timer,
     Volume2,
     VolumeX,
+    Trash2,
+    Plus,
 } from "lucide-react";
 import {
     City,
@@ -139,6 +141,85 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
         localStorage.setItem("prayer-alarms", JSON.stringify(newAlarms));
         window.dispatchEvent(new Event('alarm-update'));
     };
+
+    // --- Custom Alarms Logic ---
+    const [customAlarms, setCustomAlarms] = useState<{ id: number; name: string; time: string; enabled: boolean }[]>([]);
+    const [newAlarmName, setNewAlarmName] = useState("");
+    const [newAlarmTime, setNewAlarmTime] = useState("");
+
+    useEffect(() => {
+        const saved = localStorage.getItem("custom-alarms");
+        if (saved) setCustomAlarms(JSON.parse(saved));
+    }, []);
+
+    const saveCustomAlarms = (updated: typeof customAlarms) => {
+        setCustomAlarms(updated);
+        localStorage.setItem("custom-alarms", JSON.stringify(updated));
+    };
+
+    const scheduleCustomAlarm = async (alarm: { id: number; name: string; time: string }) => {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const [h, m] = alarm.time.split(':').map(Number);
+
+        let fireDate = new Date();
+        fireDate.setHours(h, m, 0, 0);
+        if (fireDate.getTime() <= Date.now()) {
+            fireDate.setDate(fireDate.getDate() + 1);
+        }
+
+        await LocalNotifications.schedule({
+            notifications: [{
+                id: alarm.id,
+                title: `Waktunya ${alarm.name}`,
+                body: `Saatnya sholat ${alarm.name} (${alarm.time})`,
+                schedule: { at: fireDate, allowWhileIdle: true, every: 'day' },
+                sound: 'adzannotif.mp3',
+                channelId: 'adzan_channel_v3',
+                smallIcon: 'ic_stat_icon_config_sample'
+            }]
+        });
+    };
+
+    const addCustomAlarm = async () => {
+        if (!newAlarmName.trim() || !newAlarmTime) return;
+        if (customAlarms.length >= 5) return;
+
+        // Generate safe ID (2000-100000 range to avoid conflict with standard IDs 0-100)
+        const id = Math.floor(2000 + Math.random() * 90000);
+        const newAlarm = { id, name: newAlarmName, time: newAlarmTime, enabled: true };
+
+        const updated = [...customAlarms, newAlarm];
+        saveCustomAlarms(updated);
+
+        await scheduleCustomAlarm(newAlarm);
+
+        setNewAlarmName("");
+        setNewAlarmTime("");
+    };
+
+    const removeCustomAlarm = async (id: number) => {
+        const updated = customAlarms.filter(a => a.id !== id);
+        saveCustomAlarms(updated);
+
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.cancel({ notifications: [{ id }] });
+    };
+
+    const toggleCustomAlarm = async (id: number) => {
+        const alarm = customAlarms.find(a => a.id === id);
+        if (!alarm) return;
+
+        const updated = customAlarms.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a);
+        saveCustomAlarms(updated);
+
+        if (!alarm.enabled) {
+            await scheduleCustomAlarm(alarm);
+        } else {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.cancel({ notifications: [{ id }] });
+        }
+    };
+    // ---------------------------
 
     // Play Alarm Sound
     const playAlarm = () => {
@@ -299,7 +380,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                             {/* Current Date */}
                             <div className="flex items-center gap-2 text-white/70 text-sm mb-6">
                                 <Calendar className="w-4 h-4" />
-                                <span>{formatDate(new Date())}</span>
+                                <span>{prayerTimes?.tanggal || formatDate(new Date())}</span>
                             </div>
 
                             {/* City Selector */}
@@ -431,8 +512,45 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                     </h2>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const allEnabled = prayerInfo.every(p => alarms[p.name]);
+
+                                if (!allEnabled) {
+                                    // Importing dynamically to handle client-side logic safely
+                                    const { LocalNotifications } = await import('@capacitor/local-notifications');
+                                    const { Dialog } = await import('@capacitor/dialog');
+                                    const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
+
+                                    let perm = await LocalNotifications.checkPermissions();
+
+                                    if (perm.display !== 'granted') {
+                                        // Request permission directly first
+                                        perm = await LocalNotifications.requestPermissions();
+                                    }
+
+                                    if (perm.display !== 'granted') {
+                                        // If still denied, show Dialog
+                                        const { value } = await Dialog.confirm({
+                                            title: 'Izin Notifikasi',
+                                            message: 'Notifikasi diperlukan agar alarm sholat dapat berbunyi. Mohon izinkan notifikasi di pengaturan.',
+                                            okButtonTitle: 'Buka Pengaturan',
+                                            cancelButtonTitle: 'Batal'
+                                        });
+
+                                        if (value) {
+                                            try {
+                                                await NativeSettings.open({
+                                                    optionAndroid: AndroidSettings.ApplicationDetails,
+                                                    optionIOS: IOSSettings.App
+                                                });
+                                            } catch (e) {
+                                                console.error("Failed to open settings", e);
+                                            }
+                                        }
+                                        return; // Stop here, don't enable alarms yet
+                                    }
+                                }
+
                                 const newAlarms = { ...alarms };
                                 prayerInfo.forEach(p => newAlarms[p.name] = !allEnabled);
                                 updateAlarms(newAlarms);
@@ -533,6 +651,81 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                         <p className="text-slate-500">Silakan coba pilih kota lain</p>
                     </div>
                 )}
+            </section>
+
+            {/* Custom Scedules Section */}
+            <section className="container-app pb-8">
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 lg:p-8 shadow-sm">
+                    <h3 className="font-bold text-slate-900 mb-6 text-xl flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-indigo-600" />
+                        Jadwal Sholat Tambahan (Maks. 5)
+                    </h3>
+
+                    {/* List */}
+                    <div className="space-y-4 mb-6">
+                        {customAlarms.length === 0 && (
+                            <p className="text-slate-500 text-sm italic">Belum ada jadwal tambahan.</p>
+                        )}
+                        {customAlarms.map((alarm) => (
+                            <div key={alarm.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <div>
+                                    <p className="font-semibold text-slate-900">{alarm.name}</p>
+                                    <p className="text-2xl font-bold text-indigo-600 font-mono">{alarm.time}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => toggleCustomAlarm(alarm.id)}
+                                        className={`p-2.5 rounded-full transition-all ${alarm.enabled
+                                            ? "bg-indigo-100 text-indigo-600"
+                                            : "bg-slate-200 text-slate-400"
+                                            }`}
+                                    >
+                                        {alarm.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                                    </button>
+                                    <button
+                                        onClick={() => removeCustomAlarm(alarm.id)}
+                                        className="p-2.5 bg-rose-50 text-rose-500 rounded-full hover:bg-rose-100 transition-colors"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Add Form */}
+                    {customAlarms.length < 5 && (
+                        <div className="flex flex-col sm:flex-row gap-3 items-end">
+                            <div className="w-full">
+                                <label className="text-xs text-slate-500 mb-1 block">Nama Sholat</label>
+                                <input
+                                    type="text"
+                                    value={newAlarmName}
+                                    onChange={(e) => setNewAlarmName(e.target.value)}
+                                    placeholder="Contoh: Tahajud"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400"
+                                />
+                            </div>
+                            <div className="w-full sm:w-40">
+                                <label className="text-xs text-slate-500 mb-1 block">Waktu</label>
+                                <input
+                                    type="time"
+                                    value={newAlarmTime}
+                                    onChange={(e) => setNewAlarmTime(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400"
+                                />
+                            </div>
+                            <button
+                                onClick={addCustomAlarm}
+                                disabled={!newAlarmName || !newAlarmTime}
+                                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Tambah
+                            </button>
+                        </div>
+                    )}
+                </div>
             </section>
 
             {/* Info Section */}

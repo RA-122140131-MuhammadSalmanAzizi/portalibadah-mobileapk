@@ -3,6 +3,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { LocationProvider } from "@/contexts/LocationContext";
+import AndroidBackHandler from "@/components/AndroidBackHandler";
+import NotificationManager from "@/components/NotificationManager";
 
 export const metadata: Metadata = {
   title: "Portal Ibadah Muslim - Panduan Ibadah Harian Anda",
@@ -42,6 +44,8 @@ export default function RootLayout({
     <html lang="id">
       <body className="min-h-screen flex flex-col">
         <LocationProvider>
+          <AndroidBackHandler />
+          <NotificationManager />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />

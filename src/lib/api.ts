@@ -401,18 +401,41 @@ export function getRandomWisdom() {
     return wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
 }
 
-// Convert Gregorian to Hijri (approximate)
+// Custom Hijri Converter (Robust Index-Based)
 export function toHijriDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-    };
+    const monthNames = [
+        "Muharram", "Safar", "Rabi'ul Awal", "Rabi'ul Akhir",
+        "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
+        "Ramadhan", "Syawal", "Dzulkaidah", "Dzulhijjah"
+    ];
 
     try {
-        const hijri = new Intl.DateTimeFormat("id-u-ca-islamic", options).format(date);
-        return hijri;
-    } catch {
+        // We ask for NUMERIC month number from the Islamic Civil calendar.
+        // numeric month "1" to "12".
+        // This avoids locale string issues ("July" vs "Rajab").
+        const formatter = new Intl.DateTimeFormat('en-u-ca-islamic-civil', {
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric'
+        });
+
+        const parts = formatter.formatToParts(date);
+        const day = parts.find(p => p.type === 'day')?.value;
+        const month = parts.find(p => p.type === 'month')?.value; // "7"
+        const year = parts.find(p => p.type === 'year')?.value; // "1447"
+
+        if (day && month && year) {
+            // month is string "7". Parse it.
+            const monthIndex = parseInt(month, 10) - 1; // 0-11
+            const monthName = monthNames[monthIndex] || month;
+
+            // Ensure year is clean number
+            const cleanYear = year.replace(/\D/g, '');
+            return `${day} ${monthName} ${cleanYear} H`;
+        }
+
+        return formatter.format(date);
+    } catch (e) {
         return "";
     }
 }
