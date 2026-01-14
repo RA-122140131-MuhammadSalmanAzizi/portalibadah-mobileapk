@@ -44,6 +44,17 @@ export default function AboutPage() {
                             Menambahkan fitur <strong>Jadwal Sholat Tambahan</strong>. Anda sekarang dapat menambahkan hingga 5 jadwal alarm sholat kustom (seperti Tahajud atau Dhuha) sesuai waktu yang diinginkan.
                         </p>
                     </div>
+                    <div className="mt-4 text-center sm:text-left">
+                        <a
+                            href="https://ra-122140131-muhammadsalmanazizi.github.io/pimoapk-docs/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors shadow-sm"
+                        >
+                            See Full Documentation
+                            <Info className="w-4 h-4 ml-1" />
+                        </a>
+                    </div>
                 </div>
 
                 {/* Data Sources */}
