@@ -77,7 +77,7 @@ const prayerInfo = [
 ];
 
 export default function SholatClient({ initialCities }: SholatClientProps) {
-    const { selectedCity, setSelectedCity, cities: contextCities } = useLocation();
+    const { selectedCity, setSelectedCity, cities: contextCities, detectLocation } = useLocation();
     const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -328,7 +328,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                 {isDropdownOpen && (
                                     <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[999] max-h-96 overflow-hidden animate-fade-in flex flex-col">
                                         {/* Search Input */}
-                                        <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                        <div className="p-4 border-b border-slate-100 bg-slate-50 space-y-3">
                                             <div className="relative">
                                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                                 <input
@@ -340,6 +340,17 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                                     autoFocus
                                                 />
                                             </div>
+
+                                            <button
+                                                onClick={() => {
+                                                    detectLocation();
+                                                    setIsDropdownOpen(false);
+                                                }}
+                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors font-medium text-sm shadow-sm"
+                                            >
+                                                <MapPin className="w-4 h-4" />
+                                                Deteksi Lokasi Otomatis
+                                            </button>
                                         </div>
 
                                         {/* City List */}
