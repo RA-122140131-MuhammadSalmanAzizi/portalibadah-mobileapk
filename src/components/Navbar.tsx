@@ -159,7 +159,7 @@ export default function Navbar() {
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-3 group">
                             <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center transition-colors ${getLogoStyle()}`}>
-                                <Moon className="w-5 h-5 lg:w-6 lg:h-6" />
+                                <img src="/icon" alt="Portal Ibadah" className="w-6 h-6 lg:w-7 lg:h-7 object-contain rounded-md" />
                             </div>
                             <div className="block">
                                 <h1 className={`text-lg font-bold ${getTextStyle()}`}>
