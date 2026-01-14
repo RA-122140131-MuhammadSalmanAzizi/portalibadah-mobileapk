@@ -55,12 +55,14 @@ export default function QuranClient({ initialSurahs }: QuranClientProps) {
     const filteredSurahs = useMemo(() => {
         if (!searchQuery.trim()) return initialSurahs;
 
-        const query = searchQuery.toLowerCase();
+        const normalizeText = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const query = normalizeText(searchQuery);
+
         return initialSurahs.filter(
             (surah) =>
-                surah.namaLatin.toLowerCase().includes(query) ||
-                surah.arti.toLowerCase().includes(query) ||
-                surah.nomor.toString().includes(query)
+                normalizeText(surah.namaLatin).includes(query) ||
+                normalizeText(surah.arti).includes(query) ||
+                surah.nomor.toString().includes(searchQuery) // Keep number search strict/numeric
         );
     }, [initialSurahs, searchQuery]);
 

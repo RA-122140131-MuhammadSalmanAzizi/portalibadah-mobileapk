@@ -51,11 +51,13 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
 
         if (!searchQuery.trim()) return initialDoas;
 
-        const query = searchQuery.toLowerCase();
+        const normalizeText = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const query = normalizeText(searchQuery);
+
         return initialDoas.filter(
             (doa) =>
-                doa.doa.toLowerCase().includes(query) ||
-                doa.artinya.toLowerCase().includes(query)
+                normalizeText(doa.doa).includes(query) ||
+                normalizeText(doa.artinya).includes(query)
         );
     }, [initialDoas, searchQuery, favorites]);
 
