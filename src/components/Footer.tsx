@@ -120,7 +120,7 @@ export default function Footer() {
                             </li>
                             <li>
                                 <a
-                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah"
+                                    href="https://github.com"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-sm"
