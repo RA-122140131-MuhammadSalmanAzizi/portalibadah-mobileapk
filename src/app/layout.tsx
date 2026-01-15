@@ -7,6 +7,7 @@ import AndroidBackHandler from "@/components/AndroidBackHandler";
 import NotificationManager from "@/components/NotificationManager";
 import { AudioProvider } from "@/contexts/AudioContext";
 import GlobalAudioNavigator from "@/components/GlobalAudioNavigator";
+import AppUpdater from "@/components/AppUpdater";
 
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col">
         <LocationProvider>
           <AudioProvider>
+            <AppUpdater />
             <AndroidBackHandler />
             <NotificationManager />
             <GlobalAudioNavigator />

@@ -18,6 +18,9 @@ const config: CapacitorConfig = {
       iconColor: "#488AFF",
       sound: "adzannotif.mp3",
     },
+    CapacitorUpdater: {
+      autoUpdate: true,
+    },
   },
 };
 
