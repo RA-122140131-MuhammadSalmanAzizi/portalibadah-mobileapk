@@ -39,9 +39,9 @@ export default function AboutPage() {
                         Aplikasi ini menyediakan fitur Al-Qur'an digital, jadwal sholat akurat, doa harian, dan fitur lainnya tanpa iklan mengganggu.
                     </p>
                     <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-                        <p className="text-indigo-900 font-medium text-xs mb-1">✨ Update 1.1</p>
+                        <p className="text-indigo-900 font-medium text-xs mb-1">✨ Update 1.1.1 (OTA Live)</p>
                         <p className="text-indigo-700 text-xs">
-                            Menambahkan fitur <strong>Jadwal Sholat Tambahan</strong>. Anda sekarang dapat menambahkan hingga 5 jadwal alarm sholat kustom (seperti Tahajud atau Dhuha) sesuai waktu yang diinginkan.
+                            Melakukan perbaikan bug minor dan uji coba fitur <strong>Auto Update Tanpa Install Ulang</strong>. Jika Anda membaca pesan ini, berarti aplikasi Anda berhasil terupdate secara otomatis! 🚀
                         </p>
                     </div>
                     <div className="mt-4 text-center sm:text-left">
