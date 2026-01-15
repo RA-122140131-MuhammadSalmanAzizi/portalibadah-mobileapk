@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-    ArrowLeft,
     ChevronLeft,
     ChevronRight,
     MapPin,
@@ -12,34 +12,51 @@ import {
     Volume2,
     BookOpen,
     Bookmark,
-    Layers,
     Sun,
     Moon,
     Coffee,
+    Repeat1,
+    SkipForward,
+    X,
+    Square,
+    Info,
+    ArrowRightToLine
 } from "lucide-react";
 import { SurahDetail } from "@/lib/api";
+import { useAudio } from "@/contexts/AudioContext";
 
 interface SurahDetailClientProps {
     surah: SurahDetail;
 }
 
 export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [theme, setTheme] = useState<'light' | 'dark' | 'yellow'>('light');
+    const router = useRouter();
 
-    type ThemeType = 'light' | 'dark' | 'yellow';
+    // Audio Context
+    const { play, pause, stop, toggle, isPlaying: globalIsPlaying, currentTrack, playbackMode, setPlaybackMode } = useAudio();
+
+    // Get Audio URL (Prefer Mishary - 05, otherwise first available)
+    const audioUrl = surah.audioFull['05'] || Object.values(surah.audioFull)[0] || null;
+
+    // Logic to verify if current playing track IS this surah's track (regardless of play/pause state)
+    const isCurrentContext = currentTrack?.url === audioUrl;
+
+    // For UI State (Icon Play/Pause)
+    const isThisSurahPlaying = isCurrentContext && globalIsPlaying;
+
+    const [theme, setTheme] = useState<'light' | 'dark' | 'yellow'>('light');
+    const [notification, setNotification] = useState<string | null>(null);
 
     const themeStyles = {
         light: "bg-gradient-to-b from-gray-50 to-white text-slate-900",
         dark: "bg-slate-950 text-slate-100",
-        yellow: "bg-[#4a4136] text-emerald-50", // Brown background
+        yellow: "bg-[#4a4136] text-emerald-50",
     };
 
     const verseCardStyles = {
         light: "bg-white border-slate-100 shadow-sm",
         dark: "bg-slate-900 border-slate-800 shadow-lg shadow-black/20",
-        yellow: "bg-[#fdf6e3] border-[#ede5ce] shadow-sm", // Original cream card
+        yellow: "bg-[#fdf6e3] border-[#ede5ce] shadow-sm",
     };
 
     const textStyles = {
@@ -48,37 +65,21 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         yellow: "text-slate-900",
     };
 
-    const subTextStyles = {
-        light: "text-slate-600",
-        dark: "text-slate-400",
-        yellow: "text-slate-700",
-    };
-
-    // Get the first available audio URL
-    const audioUrl = surah.audioFull
-        ? Object.values(surah.audioFull)[0]
-        : null;
-
     // Load initial theme and sync with navbar
     useEffect(() => {
-        // Sync Initial Theme
         const savedTheme = localStorage.getItem('quran-theme') as 'light' | 'dark' | 'yellow' | null;
         if (savedTheme) setTheme(savedTheme);
 
-
         const updateNavbar = () => {
-            // Dispatch event to ensure navbar knows we are here, essentially a "heartbeat" or immediate sync
             window.dispatchEvent(new Event('quran-theme-change')); // Re-trigger navbar check
         }
         updateNavbar();
-
     }, []);
 
     // Bookmark State
     const [isBookmarked, setIsBookmarked] = useState(false);
 
     useEffect(() => {
-        // Check if current surah is bookmarked
         const checkBookmark = () => {
             const existing = localStorage.getItem('quran-bookmarks');
             if (existing) {
@@ -89,6 +90,11 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         }
         checkBookmark();
     }, [surah.nomor]);
+
+    const showNotification = (msg: string) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(null), 2000);
+    };
 
     const toggleBookmark = () => {
         const newBookmark = {
@@ -101,34 +107,71 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         const bookmarks = existing ? JSON.parse(existing) : [];
 
         if (isBookmarked) {
-            // Remove
             const filtered = bookmarks.filter((b: any) => !(b.type === 'surah' && b.id === surah.nomor));
             localStorage.setItem('quran-bookmarks', JSON.stringify(filtered));
             setIsBookmarked(false);
+            showNotification("Dihapus dari Bookmark");
         } else {
-            // Add (Prevent duplicates just in case)
             const filtered = bookmarks.filter((b: any) => !(b.type === 'surah' && b.id === surah.nomor));
             localStorage.setItem('quran-bookmarks', JSON.stringify([newBookmark, ...filtered]));
             setIsBookmarked(true);
+            showNotification("Disimpan ke Bookmark");
         }
     };
 
     const togglePlay = () => {
-        if (!audioRef.current) {
-            // Create audio element if it doesn't exist
-            audioRef.current = new Audio(audioUrl || "");
-            audioRef.current.onended = () => setIsPlaying(false);
-        }
+        if (!audioUrl) return;
 
-        if (isPlaying) {
-            audioRef.current.pause();
+        if (isCurrentContext) {
+            toggle(); // Resume or Pause existing track
         } else {
-            audioRef.current.play();
+            // Play New
+            play({
+                url: audioUrl,
+                title: `QS. ${surah.namaLatin}`,
+                artist: "Mishary Rashid Alafasy",
+                album: "Portal Ibadah",
+                meta: { surahId: surah.nomor }
+            });
         }
-        setIsPlaying(!isPlaying);
     };
 
-    // Save Last Read (Only when surah changes)
+    const handleThemeChange = (newTheme: 'light' | 'dark' | 'yellow') => {
+        setTheme(newTheme);
+        localStorage.setItem('quran-theme', newTheme);
+        window.dispatchEvent(new Event('quran-theme-change'));
+    };
+
+    // Auto-Play Next Surah
+    useEffect(() => {
+        const handleQueueEnded = () => {
+            if (surah.suratSelanjutnya) {
+                sessionStorage.setItem('quran-autoplay-surah', 'true');
+                router.push(`/quran/${surah.suratSelanjutnya.nomor}`);
+            }
+        };
+        window.addEventListener('audio-queue-ended', handleQueueEnded);
+        return () => window.removeEventListener('audio-queue-ended', handleQueueEnded);
+    }, [surah, router]);
+
+    // Check Auto-Play on Mount
+    useEffect(() => {
+        if (sessionStorage.getItem('quran-autoplay-surah') === 'true') {
+            const url = surah.audioFull['05'] || Object.values(surah.audioFull)[0] || null;
+            if (url) {
+                sessionStorage.removeItem('quran-autoplay-surah');
+                play({
+                    url: url,
+                    title: `QS. ${surah.namaLatin}`,
+                    artist: "Mishary Rashid Alafasy",
+                    album: "Portal Ibadah",
+                    meta: { surahId: surah.nomor }
+                });
+            }
+        }
+    }, [surah, play]);
+
+    // Save Last Read
     useEffect(() => {
         const lastRead = {
             type: 'surah',
@@ -139,47 +182,41 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         localStorage.setItem('last-read', JSON.stringify(lastRead));
     }, [surah]);
 
-    // Theme Handler
-    const handleThemeChange = (newTheme: 'light' | 'dark' | 'yellow') => {
-        setTheme(newTheme);
-        localStorage.setItem('quran-theme', newTheme);
-        window.dispatchEvent(new Event('quran-theme-change'));
-    };
-
     // Scroll functionality
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 
-
-
     // Force Scroll Reset on Navigation
     useEffect(() => {
-        // Immediate reset
         window.scrollTo(0, 0);
-
-        // Timeout backup for race conditions with layout/images
         const timeout = setTimeout(() => {
             window.scrollTo(0, 0);
         }, 50);
-
         return () => clearTimeout(timeout);
-    }, [surah.nomor]); // Trigger on Surah Change
+    }, [surah.nomor]);
 
     return (
         <div className={`min-h-screen transition-colors duration-300 ${themeStyles[theme]}`}>
+
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
+                    <div className="bg-slate-900/90 text-white px-4 py-2 rounded-full text-sm shadow-lg backdrop-blur-sm flex items-center gap-2">
+                        <Info className="w-4 h-4 text-emerald-400" />
+                        {notification}
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <section className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 overflow-hidden">
-                {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
 
                 <div className="container-app relative z-10 py-6 lg:py-8">
-                    {/* Back Button and Navigation */}
-                    {/* Back Button and Navigation - Removing Back button from here as requested to move it below */}
+                    {/* Top Row: Bookmark Button */}
                     <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <div className="flex items-center gap-2">
-                            {/* Placeholder for alignment if needed, or remove completely. Keeping structure for Badge */}
-                        </div>
+                        <div className="flex items-center gap-2"></div>
                         <button
                             onClick={toggleBookmark}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium ${isBookmarked
@@ -225,26 +262,68 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                         {/* Audio Player */}
                         {audioUrl && (
                             <div className="flex items-center gap-3 sm:gap-4 px-4 py-3 sm:px-6 sm:py-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-                                { /* Scroll Button specific to this area removed */}
+                                { /* Play Button */}
                                 <button
                                     onClick={togglePlay}
                                     className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center text-emerald-600 hover:scale-105 transition-transform shadow-lg shrink-0"
                                 >
-                                    {isPlaying ? (
+                                    {isThisSurahPlaying ? (
                                         <Pause className="w-5 h-5 sm:w-6 sm:h-6" />
                                     ) : (
                                         <Play className="w-5 h-5 sm:w-6 sm:h-6 ml-1" />
                                     )}
                                 </button>
-                                <div>
+                                <div className="flex-1">
                                     <p className="text-white font-medium flex items-center gap-2 text-sm sm:text-base">
                                         <Volume2 className="w-4 h-4" />
                                         Audio Murottal
                                     </p>
                                     <p className="text-emerald-100 text-xs sm:text-sm">
-                                        {isPlaying ? "Sedang diputar..." : "Tekan untuk memutar"}
+                                        {isThisSurahPlaying ? "Sedang diputar..." : "Tekan untuk memutar"}
                                     </p>
                                 </div>
+
+                                {/* Stop Button (Hidden Animation) */}
+                                <div className={`transition-all duration-300 ${isCurrentContext ? 'opacity-100 scale-100 w-auto' : 'opacity-0 scale-0 w-0 pointer-events-none overflow-hidden'}`}>
+                                    <button
+                                        onClick={stop}
+                                        className="p-2.5 rounded-full bg-rose-500/20 text-rose-200 hover:bg-rose-500/40 transition-all shrink-0"
+                                        title="Stop Audio"
+                                    >
+                                        <Square className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                                    </button>
+                                </div>
+
+                                {/* Playback Mode Toggle */}
+                                <button
+                                    onClick={() => {
+                                        const modes: ('once' | 'autoplay' | 'repeat')[] = ['once', 'autoplay', 'repeat'];
+                                        const currentIdx = modes.indexOf(playbackMode);
+                                        const nextIdx = (currentIdx + 1) % modes.length;
+                                        const nextMode = modes[nextIdx];
+                                        setPlaybackMode(nextMode);
+                                        const labels = { once: 'Putar Sekali', autoplay: 'Auto Next Surah', repeat: 'Repeat Surah Ini' };
+                                        showNotification(`Mode: ${labels[nextMode]}`);
+                                    }}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-all shrink-0 shadow-sm ${playbackMode === 'once'
+                                        ? 'bg-white text-slate-400 hover:text-slate-600'
+                                        : playbackMode === 'autoplay'
+                                            ? 'bg-white text-blue-500 shadow-blue-500/10'
+                                            : 'bg-white text-emerald-600 shadow-emerald-500/10'
+                                        }`}
+                                    title={
+                                        playbackMode === 'once'
+                                            ? 'Putar Sekali'
+                                            : playbackMode === 'autoplay'
+                                                ? 'Auto Next Surah'
+                                                : 'Repeat Surah Ini'
+                                    }
+                                >
+                                    {playbackMode === 'once' && <ArrowRightToLine className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                    {playbackMode === 'autoplay' && <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                    {playbackMode === 'repeat' && <Repeat1 className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                </button>
+
                             </div>
                         )}
                     </div>
@@ -311,9 +390,6 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                 </div>
             )}
 
-            {/* If Surah 1 or 9 (no bismillah), still show toggle at top of content */}
-            {/* If Surah 1 or 9 (no bismillah), still show toggle at top of content - REMOVED DUPLICATE */}
-
             {/* Verses */}
             <section className="container-app py-6 lg:py-8">
                 <div className="space-y-6">
@@ -339,9 +415,6 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                     ))}
                 </div>
             </section>
-
-            {/* Floating Action Button for Scroll */}
-
 
             {/* Bottom Toolbar: Back to List & Scroll Up */}
             <div className="container-app py-6 flex items-center justify-between w-full relative border-t border-gray-200/20 mt-8">
@@ -407,6 +480,6 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                     )}
                 </div>
             </section>
-        </div >
+        </div>
     );
 }

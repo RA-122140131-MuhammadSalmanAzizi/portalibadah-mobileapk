@@ -5,6 +5,9 @@ import Footer from "@/components/Footer";
 import { LocationProvider } from "@/contexts/LocationContext";
 import AndroidBackHandler from "@/components/AndroidBackHandler";
 import NotificationManager from "@/components/NotificationManager";
+import { AudioProvider } from "@/contexts/AudioContext";
+import GlobalAudioNavigator from "@/components/GlobalAudioNavigator";
+
 
 export const metadata: Metadata = {
   title: "Portal Ibadah Muslim - Panduan Ibadah Harian Anda",
@@ -44,11 +47,14 @@ export default function RootLayout({
     <html lang="id">
       <body className="min-h-screen flex flex-col">
         <LocationProvider>
-          <AndroidBackHandler />
-          <NotificationManager />
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <AudioProvider>
+            <AndroidBackHandler />
+            <NotificationManager />
+            <GlobalAudioNavigator />
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AudioProvider>
         </LocationProvider>
       </body>
     </html>

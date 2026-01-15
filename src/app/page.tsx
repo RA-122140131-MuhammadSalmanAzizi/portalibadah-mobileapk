@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LocalNotifications } from '@capacitor/local-notifications';
+
+
+
+// ... in JSX ...
 import {
   BookOpen,
   Clock,
@@ -13,6 +18,11 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
+  Play,
+  Pause,
+  X,
+  Repeat1,
+  SkipForward,
 } from "lucide-react";
 import {
   formatGregorianDate,
@@ -25,6 +35,8 @@ import {
   PrayerTimes,
 } from "@/lib/api";
 import { useLocation } from "@/contexts/LocationContext";
+import { useAudio } from "@/contexts/AudioContext";
+
 
 // Default wisdom for SSR
 const defaultWisdom = {
@@ -34,6 +46,9 @@ const defaultWisdom = {
 
 export default function HomePage() {
   const { selectedCity } = useLocation();
+  const { isPlaying, currentTrack, toggle, stop, playbackMode, setPlaybackMode } = useAudio();
+
+
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{
     name: string;
@@ -67,8 +82,8 @@ export default function HomePage() {
   }, []);
 
   const toggleAllAlarms = (enable: boolean) => {
-    // Only update if we have prayer times names, but for now we assume standard names
-    const prayerNames = ["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"];
+    // Only update if we have prayer times names, including Imsak and Terbit to match Sholat page
+    const prayerNames = ["Imsak", "Subuh", "Terbit", "Dzuhur", "Ashar", "Maghrib", "Isya"];
     const newAlarms: Record<string, boolean> = { ...alarms };
     prayerNames.forEach(name => {
       newAlarms[name] = enable;
@@ -76,6 +91,26 @@ export default function HomePage() {
     setAlarms(newAlarms);
     localStorage.setItem("prayer-alarms", JSON.stringify(newAlarms));
     window.dispatchEvent(new Event('alarm-update'));
+  };
+
+  const handleAlarmToggle = async () => {
+    const prayerNames = ["Imsak", "Subuh", "Terbit", "Dzuhur", "Ashar", "Maghrib", "Isya"];
+    const allEnabled = prayerNames.every(p => alarms[p]);
+    const targetState = !allEnabled;
+
+    if (targetState) {
+      // Turning ON -> Check Permissions
+      let perm = await LocalNotifications.checkPermissions();
+      if (perm.display !== 'granted') {
+        perm = await LocalNotifications.requestPermissions();
+      }
+      if (perm.display !== 'granted') {
+        alert("Izin notifikasi diperlukan untuk mengaktifkan alarm sholat.");
+        return;
+      }
+    }
+
+    toggleAllAlarms(targetState);
   };
 
   useEffect(() => {
@@ -190,13 +225,101 @@ export default function HomePage() {
                     </Link>
                   </div>
 
-                  <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Jadwal Selanjutnya</p>
-                  <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2">
-                    {nextPrayer.name}
-                  </h2>
-                  <p className="text-xl sm:text-2xl text-slate-300 mb-8 sm:mb-10">
-                    {nextPrayer.time} WIB
-                  </p>
+                  <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 lg:mb-10">
+                    <div className="flex-1">
+                      <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Jadwal Selanjutnya</p>
+                      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2">
+                        {nextPrayer.name}
+                      </h2>
+                      <p className="text-xl sm:text-2xl text-slate-300">
+                        {nextPrayer.time} WIB
+                      </p>
+                    </div>
+
+                    {/* Mini Audio Player Positioned Right */}
+                    {currentTrack && (
+                      <div className="w-full lg:w-72 p-3 bg-slate-800/50 rounded-xl border border-white/10 backdrop-blur-sm shrink-0 flex items-center gap-3">
+                        {/* Play/Pause Button */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggle();
+                          }}
+                          className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shrink-0"
+                        >
+                          {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="ml-1 fill-current" />}
+                        </button>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-bold truncate leading-tight mb-0.5">{currentTrack.title}</p>
+                          <p className="text-slate-400 text-[10px] truncate leading-tight">{currentTrack.artist}</p>
+                        </div>
+
+                        {/* Actions Group */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Playback Mode Toggle */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const modes: ('once' | 'autoplay' | 'repeat')[] = ['once', 'autoplay', 'repeat'];
+                              const currentIdx = modes.indexOf(playbackMode);
+                              const nextIdx = (currentIdx + 1) % modes.length;
+                              const nextMode = modes[nextIdx];
+                              setPlaybackMode(nextMode);
+                              // Show notification
+                              const labels = { once: 'Putar Sekali', autoplay: 'Auto Next', repeat: 'Repeat' };
+                              alert(`Mode: ${labels[nextMode]}`);
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${playbackMode === 'once'
+                              ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                              : playbackMode === 'autoplay'
+                                ? 'text-blue-400 bg-blue-500/20'
+                                : 'text-emerald-400 bg-emerald-500/20'
+                              }`}
+                            title={playbackMode === 'once' ? 'Putar Sekali' : playbackMode === 'autoplay' ? 'Auto Next' : 'Repeat'}
+                          >
+                            {playbackMode === 'once' && <Play size={18} />}
+                            {playbackMode === 'autoplay' && <SkipForward size={18} />}
+                            {playbackMode === 'repeat' && <Repeat1 size={18} />}
+                          </button>
+
+                          {/* Open Button */}
+                          {currentTrack.meta?.page && (
+                            <Link
+                              href={`/quran/page/${currentTrack.meta.page}`}
+                              className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                              title="Buka Halaman"
+                            >
+                              <BookOpen size={18} />
+                            </Link>
+                          )}
+                          {currentTrack.meta?.surahId && (
+                            <Link
+                              href={`/quran/${currentTrack.meta.surahId}`}
+                              className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                              title="Buka Surah"
+                            >
+                              <BookOpen size={18} />
+                            </Link>
+                          )}
+
+                          {/* Close Button */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              stop();
+                            }}
+                            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            title="Tutup"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
 
                   <div className="flex items-center gap-3">
                     <Timer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -208,16 +331,12 @@ export default function HomePage() {
                   {/* Alarm Toggle */}
                   <div className="mt-8 pt-6 border-t border-white/10">
                     <button
-                      onClick={() => {
-                        const prayerNames = ["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"];
-                        const allEnabled = prayerNames.every(p => alarms[p]);
-                        toggleAllAlarms(!allEnabled);
-                      }}
+                      onClick={handleAlarmToggle}
                       className="w-full flex items-center justify-center gap-3 py-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-white font-medium group"
                     >
-                      <div className={`w-3 h-3 rounded-full mr-1 transition-all duration-300 ${["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"].every(p => alarms[p]) ? 'bg-[#00ff2a] shadow-[0_0_10px_#00ff2a,0_0_20px_#00ff2a] animate-pulse' : 'bg-slate-400/50'}`} />
+                      <div className={`w-3 h-3 rounded-full mr-1 transition-all duration-300 ${["Imsak", "Subuh", "Terbit", "Dzuhur", "Ashar", "Maghrib", "Isya"].every(p => alarms[p]) ? 'bg-[#00ff2a] shadow-[0_0_10px_#00ff2a,0_0_20px_#00ff2a] animate-pulse' : 'bg-slate-400/50'}`} />
 
-                      {["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"].every(p => alarms[p]) ? (
+                      {["Imsak", "Subuh", "Terbit", "Dzuhur", "Ashar", "Maghrib", "Isya"].every(p => alarms[p]) ? (
                         <>
                           <span>Alarm Aktif</span>
                         </>

@@ -17,6 +17,8 @@ import {
     VolumeX,
     Trash2,
     Plus,
+    Pencil,
+    X,
 } from "lucide-react";
 import {
     City,
@@ -147,6 +149,39 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
     const [newAlarmName, setNewAlarmName] = useState("");
     const [newAlarmTime, setNewAlarmTime] = useState("");
 
+    // Editing State
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editTime, setEditTime] = useState("");
+
+    const startEditing = (alarm: { id: number; name: string; time: string }) => {
+        setEditingId(alarm.id);
+        setEditName(alarm.name);
+        setEditTime(alarm.time);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditName("");
+        setEditTime("");
+    };
+
+    const saveEdit = async () => {
+        if (!editingId || !editName.trim() || !editTime) return;
+
+        const updated = customAlarms.map(a =>
+            a.id === editingId ? { ...a, name: editName, time: editTime } : a
+        );
+        saveCustomAlarms(updated);
+
+        // Reschedule
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.cancel({ notifications: [{ id: editingId }] });
+        await scheduleCustomAlarm({ id: editingId, name: editName, time: editTime });
+
+        cancelEditing();
+    };
+
     useEffect(() => {
         const saved = localStorage.getItem("custom-alarms");
         if (saved) setCustomAlarms(JSON.parse(saved));
@@ -209,13 +244,38 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
         const alarm = customAlarms.find(a => a.id === id);
         if (!alarm) return;
 
+        // If turning ON, check permissions
+        if (!alarm.enabled) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            const { Dialog } = await import('@capacitor/dialog');
+            const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
+
+            let perm = await LocalNotifications.checkPermissions();
+            if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+
+            if (perm.display !== 'granted') {
+                const { value } = await Dialog.confirm({
+                    title: 'Izin Notifikasi',
+                    message: 'Notifikasi diperlukan agar alarm sholat dapat berbunyi.',
+                    okButtonTitle: 'Pengaturan',
+                    cancelButtonTitle: 'Batal'
+                });
+                if (value) {
+                    try { await NativeSettings.open({ optionAndroid: AndroidSettings.ApplicationDetails, optionIOS: IOSSettings.App }); } catch (e) { }
+                }
+                return;
+            }
+        }
+
         const updated = customAlarms.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a);
         saveCustomAlarms(updated);
 
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
         if (!alarm.enabled) {
-            await scheduleCustomAlarm(alarm);
+            // Turning ON
+            // We need to schedule it.
+            await scheduleCustomAlarm({ id: alarm.id, name: alarm.name, time: alarm.time });
         } else {
-            const { LocalNotifications } = await import('@capacitor/local-notifications');
             await LocalNotifications.cancel({ notifications: [{ id }] });
         }
     };
@@ -250,8 +310,21 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
     };
 
     // Toggle Alarm
-    const toggleAlarm = (prayerName: string) => {
-        const newAlarms = { ...alarms, [prayerName]: !alarms[prayerName] };
+    const toggleAlarm = async (prayerName: string) => {
+        const targetState = !alarms[prayerName];
+
+        if (targetState) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            let perm = await LocalNotifications.checkPermissions();
+            if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+
+            if (perm.display !== 'granted') {
+                alert("Izin notifikasi diperlukan.");
+                return;
+            }
+        }
+
+        const newAlarms = { ...alarms, [prayerName]: targetState };
         updateAlarms(newAlarms);
     };
 
@@ -668,27 +741,63 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                         )}
                         {customAlarms.map((alarm) => (
                             <div key={alarm.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <div>
-                                    <p className="font-semibold text-slate-900">{alarm.name}</p>
-                                    <p className="text-2xl font-bold text-indigo-600 font-mono">{alarm.time}</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => toggleCustomAlarm(alarm.id)}
-                                        className={`p-2.5 rounded-full transition-all ${alarm.enabled
-                                            ? "bg-indigo-100 text-indigo-600"
-                                            : "bg-slate-200 text-slate-400"
-                                            }`}
-                                    >
-                                        {alarm.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                                    </button>
-                                    <button
-                                        onClick={() => removeCustomAlarm(alarm.id)}
-                                        className="p-2.5 bg-rose-50 text-rose-500 rounded-full hover:bg-rose-100 transition-colors"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
+                                {editingId === alarm.id ? (
+                                    <div className="flex-1 flex flex-col sm:flex-row gap-3 items-center w-full">
+                                        <div className="flex-1 w-full gap-2 flex flex-col sm:flex-row">
+                                            <input
+                                                type="text"
+                                                value={editName}
+                                                onChange={(e) => setEditName(e.target.value)}
+                                                className="w-full sm:flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
+                                                autoFocus
+                                            />
+                                            <input
+                                                type="time"
+                                                value={editTime}
+                                                onChange={(e) => setEditTime(e.target.value)}
+                                                className="w-full sm:w-32 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2 self-end sm:self-center">
+                                            <button onClick={saveEdit} className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+                                                <Check className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={cancelEditing} className="p-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors">
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <p className="font-semibold text-slate-900">{alarm.name}</p>
+                                            <p className="text-2xl font-bold text-indigo-600 font-mono">{alarm.time}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <button
+                                                onClick={() => startEditing(alarm)}
+                                                className="p-2.5 bg-indigo-50 text-indigo-500 rounded-full hover:bg-indigo-100 transition-colors"
+                                            >
+                                                <Pencil className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => toggleCustomAlarm(alarm.id)}
+                                                className={`p-2.5 rounded-full transition-all ${alarm.enabled
+                                                    ? "bg-indigo-100 text-indigo-600"
+                                                    : "bg-slate-200 text-slate-400"
+                                                    }`}
+                                            >
+                                                {alarm.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                                            </button>
+                                            <button
+                                                onClick={() => removeCustomAlarm(alarm.id)}
+                                                className="p-2.5 bg-rose-50 text-rose-500 rounded-full hover:bg-rose-100 transition-colors"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>

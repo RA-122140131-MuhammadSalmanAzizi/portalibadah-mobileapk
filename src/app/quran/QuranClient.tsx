@@ -21,6 +21,7 @@ export default function QuranClient({ initialSurahs }: QuranClientProps) {
     const [viewMode, setViewMode] = useState<ViewMode>("surah");
     const [currentSurahPage, setCurrentSurahPage] = useState(1);
     const [currentPageGroup, setCurrentPageGroup] = useState(0);
+    const [windowStart, setWindowStart] = useState(0); // Track which tabs are visible (0-indexed)
     const [lastRead, setLastRead] = useState<{ type: string; id: number; name: string } | null>(null);
     const [bookmarks, setBookmarks] = useState<{ type: string; id: number; name: string; date: number }[]>([]);
 
@@ -286,6 +287,30 @@ export default function QuranClient({ initialSurahs }: QuranClientProps) {
                 {/* Surah View with Pagination */}
                 {viewMode === "surah" && (
                     <>
+                        {/* Top Navigation for Surah */}
+                        {totalSurahPages > 1 && !searchQuery && (
+                            <div className="flex justify-between items-center mb-6">
+                                <button
+                                    onClick={() => handleSurahPageChange(Math.max(1, currentSurahPage - 1))}
+                                    disabled={currentSurahPage === 1}
+                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Prev</span>
+                                </button>
+                                <span className="text-slate-500 text-sm font-medium">
+                                    Halaman {currentSurahPage} dari {totalSurahPages}
+                                </span>
+                                <button
+                                    onClick={() => handleSurahPageChange(Math.min(totalSurahPages, currentSurahPage + 1))}
+                                    disabled={currentSurahPage === totalSurahPages}
+                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <span className="hidden sm:inline">Next</span>
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                             {paginatedSurahs.map((surah) => (
                                 <Link
@@ -371,38 +396,60 @@ export default function QuranClient({ initialSurahs }: QuranClientProps) {
                     <>
                         {/* Pagination Controls - Top */}
                         {!searchQuery && (
-                            <div className="flex flex-wrap items-center justify-center gap-2 mb-6 sm:mb-8">
+                            <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+                                {/* Prev Button */}
                                 <button
-                                    onClick={() => handlePageGroupChange(Math.max(0, currentPageGroup - 1))}
+                                    onClick={() => {
+                                        if (currentPageGroup <= 0) return;
+                                        const newPage = currentPageGroup - 1;
+                                        handlePageGroupChange(newPage);
+                                        // If new page is less than window start, slide window left
+                                        if (newPage < windowStart) {
+                                            setWindowStart(newPage);
+                                        }
+                                    }}
                                     disabled={currentPageGroup === 0}
-                                    className="flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                    className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    Prev
+                                    <ChevronLeft className="w-5 h-5" />
                                 </button>
 
-                                <div className="flex flex-wrap justify-center gap-1 max-w-[80vw] overflow-hidden">
-                                    {Array.from({ length: totalPageGroups }, (_, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => handlePageGroupChange(i)}
-                                            className={`px-2 py-1 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all ${currentPageGroup === i
-                                                ? "bg-emerald-500 text-white shadow-lg"
-                                                : "bg-white border border-slate-100 text-slate-600 hover:bg-emerald-50"
-                                                } ${Math.abs(currentPageGroup - i) > 2 ? 'hidden sm:inline-block' : 'inline-block'}`}
-                                        >
-                                            {i * PAGES_PER_VIEW + 1}-{Math.min((i + 1) * PAGES_PER_VIEW, totalPages)}
-                                        </button>
-                                    ))}
+                                {/* 3 Visible Tabs */}
+                                <div className="flex justify-center gap-2">
+                                    {Array.from({ length: Math.min(3, totalPageGroups) }, (_, idx) => {
+                                        const tabIndex = windowStart + idx;
+                                        if (tabIndex >= totalPageGroups) return null;
+                                        return (
+                                            <button
+                                                key={tabIndex}
+                                                onClick={() => handlePageGroupChange(tabIndex)}
+                                                className={`px-3 py-2 rounded-xl text-sm font-medium min-w-[70px] ${currentPageGroup === tabIndex
+                                                    ? "bg-emerald-500 text-white shadow-lg"
+                                                    : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50"
+                                                    }`}
+                                            >
+                                                {tabIndex * PAGES_PER_VIEW + 1}-{Math.min((tabIndex + 1) * PAGES_PER_VIEW, totalPages)}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
+                                {/* Next Button */}
                                 <button
-                                    onClick={() => handlePageGroupChange(Math.min(totalPageGroups - 1, currentPageGroup + 1))}
+                                    onClick={() => {
+                                        if (currentPageGroup >= totalPageGroups - 1) return;
+                                        const newPage = currentPageGroup + 1;
+                                        handlePageGroupChange(newPage);
+                                        // If new page exceeds the visible window end, slide window right
+                                        const windowEnd = windowStart + 2;
+                                        if (newPage > windowEnd) {
+                                            setWindowStart(windowStart + 1);
+                                        }
+                                    }}
                                     disabled={currentPageGroup === totalPageGroups - 1}
-                                    className="flex items-center gap-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                    className="w-10 h-10 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Next
-                                    <ChevronRight className="w-4 h-4" />
+                                    <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
                         )}
