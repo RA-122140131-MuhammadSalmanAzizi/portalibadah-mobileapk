@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useLocation } from '@/contexts/LocationContext';
+import { Capacitor } from '@capacitor/core';
 import { getPrayerTimes, formatDateForAPI } from '@/lib/api';
 
 export default function NotificationManager() {
@@ -35,6 +36,7 @@ export default function NotificationManager() {
     }, []);
 
     const createChannel = async () => {
+        if (Capacitor.getPlatform() === 'web') return;
         try {
             await LocalNotifications.createChannel({
                 id: 'adzan_channel_v3',

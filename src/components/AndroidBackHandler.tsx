@@ -36,7 +36,12 @@ export default function AndroidBackHandler() {
                     App.exitApp();
                 } else {
                     lastPress = now;
-                    // Toast logic would go here
+                    import('@capacitor/toast').then(({ Toast }) => {
+                        Toast.show({
+                            text: 'Tekan sekali lagi untuk keluar',
+                            duration: 'short',
+                        });
+                    });
                 }
                 return;
             }

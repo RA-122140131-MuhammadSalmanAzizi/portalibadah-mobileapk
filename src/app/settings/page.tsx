@@ -5,72 +5,15 @@ import { ArrowLeft, Camera, Image, BellRing, Smartphone, ShieldAlert, Trash2, Ch
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// Placeholder for future theme context
-const themes = [
-    { id: 'light', name: 'Terang', icon: Sun },
-    { id: 'dark', name: 'Gelap', icon: Moon },
-    { id: 'system', name: 'Sistem', icon: Monitor },
-];
-
 export default function SettingsPage() {
     const router = useRouter();
-    const [wallpaper, setWallpaper] = useState<string | null>(null);
-    const [theme, setTheme] = useState('system');
     const [fullScreenAlarm, setFullScreenAlarm] = useState(false);
-
-    // --- FITUR KAMERA & STORAGE (Justifikasi Izin) ---
-    const handleTakePhoto = async () => {
-        try {
-            const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-
-            // Ini akan memicu permintaan izin KAMERA dan STORAGE otomatis
-            const image = await Camera.getPhoto({
-                quality: 90,
-                allowEditing: false,
-                resultType: CameraResultType.Uri,
-                source: CameraSource.Camera // Paksa pakai kamera
-            });
-
-            if (image.webPath) {
-                setWallpaper(image.webPath);
-                // Simpan preferensi (bisa dikembangkan nanti)
-                alert("Foto berhasil diambil! (Fitur wallpaper dalam pengembangan)");
-            }
-        } catch (e) {
-            console.error(e);
-            // Jangan alert error jika user cancel, cukup log
-        }
-    };
-
-    const handlePickGallery = async () => {
-        try {
-            const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-
-            // Ini akan memicu izin STORAGE / READ_MEDIA_IMAGES
-            const image = await Camera.getPhoto({
-                quality: 90,
-                allowEditing: false,
-                resultType: CameraResultType.Uri,
-                source: CameraSource.Photos // Paksa pakai galeri
-            });
-
-            if (image.webPath) {
-                setWallpaper(image.webPath);
-                alert("Gambar dipilih! (Fitur wallpaper dalam pengembangan)");
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    };
 
     // --- FITUR OVERLAY (Justifikasi Izin SYSTEM_ALERT_WINDOW) ---
     const handleToggleOverlay = async () => {
-        // Toggle UI state first
         setFullScreenAlarm(!fullScreenAlarm);
-
         if (!fullScreenAlarm) {
             alert("Fitur Alarm Full Screen (Overlay) akan diaktifkan pada update server berikutnya. Izin sistem sudah disiapkan.");
-            // Nanti update bagian ini lewat OTA dengan library yang benar
         }
     };
 
@@ -93,21 +36,31 @@ export default function SettingsPage() {
                     <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Tampilan</h2>
                     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
 
-                        {/* Wallpaper Preview (Fake) */}
-                        {wallpaper && (
-                            <div className="h-32 w-full bg-slate-100 relative overflow-hidden">
-                                <img src={wallpaper} alt="Wallpaper" className="w-full h-full object-cover" />
-                                <button
-                                    onClick={() => setWallpaper(null)}
-                                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
+                        <div className="p-4 bg-indigo-50 border-b border-indigo-100">
+                            <p className="text-xs text-indigo-700 leading-relaxed">
+                                Foto yang Anda upload akan otomatis menjadi <strong>Background Kartu Utama</strong> di Halaman Beranda.
+                            </p>
+                        </div>
 
                         <button
-                            onClick={handleTakePhoto}
+                            onClick={async () => {
+                                try {
+                                    const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+                                    const image = await Camera.getPhoto({
+                                        quality: 80,
+                                        allowEditing: false,
+                                        resultType: CameraResultType.Uri,
+                                        source: CameraSource.Camera
+                                    });
+                                    if (image.webPath) {
+                                        localStorage.setItem('home-bg-image', image.webPath);
+                                        window.dispatchEvent(new Event('bg-change'));
+                                        alert("Foto berhasil dipasang di Beranda!");
+                                    }
+                                } catch (e) {
+                                    console.error("Camera cancelled/error", e);
+                                }
+                            }}
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50"
                         >
                             <div className="flex items-center gap-3">
@@ -116,15 +69,32 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="text-left">
                                     <p className="font-medium text-slate-900">Ambil Foto Latar</p>
-                                    <p className="text-xs text-slate-500">Gunakan kamera untuk wallpaper</p>
+                                    <p className="text-xs text-slate-500">Gunakan kamera</p>
                                 </div>
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-300" />
                         </button>
 
                         <button
-                            onClick={handlePickGallery}
-                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                            onClick={async () => {
+                                try {
+                                    const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+                                    const image = await Camera.getPhoto({
+                                        quality: 80,
+                                        allowEditing: false,
+                                        resultType: CameraResultType.Uri,
+                                        source: CameraSource.Photos
+                                    });
+                                    if (image.webPath) {
+                                        localStorage.setItem('home-bg-image', image.webPath);
+                                        window.dispatchEvent(new Event('bg-change'));
+                                        alert("Foto Galeri berhasil dipasang di Beranda!");
+                                    }
+                                } catch (e) {
+                                    console.error("Gallery cancelled/error", e);
+                                }
+                            }}
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
@@ -132,10 +102,31 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="text-left">
                                     <p className="font-medium text-slate-900">Pilih dari Galeri</p>
-                                    <p className="text-xs text-slate-500">Pilih foto dari penyimpanan</p>
+                                    <p className="text-xs text-slate-500">Gunakan foto tersimpan</p>
                                 </div>
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-300" />
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (confirm("Hapus foto background dan kembali ke warna hitam default?")) {
+                                    localStorage.removeItem('home-bg-image');
+                                    window.dispatchEvent(new Event('bg-change'));
+                                    alert("Background dikembalikan ke default.");
+                                }
+                            }}
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                    <Trash2 className="w-5 h-5" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-slate-900">Reset Background</p>
+                                    <p className="text-xs text-slate-500">Kembali ke warna hitam</p>
+                                </div>
+                            </div>
                         </button>
                     </div>
                 </section>
@@ -209,7 +200,7 @@ export default function SettingsPage() {
                 </section>
 
                 <div className="text-center pt-8 pb-4">
-                    <p className="text-xs text-slate-400">Portal Ibadah v1.1.2</p>
+                    <p className="text-xs text-slate-400">Portal Ibadah v1.1.3</p>
                 </div>
 
             </div>

@@ -14,7 +14,8 @@ import {
     Bell,
     Settings,
     Trash2,
-    Info
+    Info,
+    ScrollText
 } from "lucide-react";
 
 const navLinks = [
@@ -22,6 +23,7 @@ const navLinks = [
     { href: "/quran", label: "Al-Qur'an", icon: BookOpen },
     { href: "/sholat", label: "Jadwal Sholat", icon: Clock },
     { href: "/doa", label: "Doa Harian", icon: Heart },
+    { href: "/hadits", label: "Hadits", icon: ScrollText },
     { href: "/about", label: "Tentang", icon: Info },
 ];
 
@@ -328,6 +330,9 @@ export default function Navbar() {
 
                     <nav className="space-y-2">
                         {navLinks.map((link) => {
+                            // Skip Doa Harian if it's already rendered above with custom styling
+                            if (link.href === '/doa') return null;
+
                             const Icon = link.icon;
                             const isActive = pathname === link.href;
 

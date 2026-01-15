@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
+import { getOnlineWisdom } from '@/utils/hadith';
 
 
 
 // ... in JSX ...
 import {
+  ScrollText,
   BookOpen,
   Clock,
   Heart,
@@ -55,11 +58,68 @@ export default function HomePage() {
     time: string;
     countdown: number;
   } | null>(null);
-  const [wisdom, setWisdom] = useState(defaultWisdom);
+  const [wisdom, setWisdom] = useState({ text: "Memuat mutiara hikmah...", source: "" });
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastRead, setLastRead] = useState<{ type: string; id: number; name: string } | null>(null);
   const [alarms, setAlarms] = useState<Record<string, boolean>>({});
+  const [heroBg, setHeroBg] = useState<string | null>(null);
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll Carousel Effect (Simplified Interval Slide)
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const interval = setInterval(() => {
+      // Cek apakah user sedang menyentuh (opsional, tapi native scroll handle interaction well)
+      // Kita cukup scrollBy satu item width
+      const itemWidth = carousel.firstElementChild?.getBoundingClientRect().width || 0;
+      if (itemWidth === 0) return;
+
+      // Gap antar item (gap-4 = 16px)
+      const totalScroll = itemWidth + 16;
+
+      // Cek mentok
+      const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+
+      if (carousel.scrollLeft >= maxScroll - 10) {
+        // Reset ke 0
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        // Maju satu slide
+        carousel.scrollBy({ left: totalScroll, behavior: 'smooth' });
+      }
+    }, 4000); // Geser setiap 4 detik
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch Wisdom
+  const refreshWisdom = async () => {
+    setWisdom(prev => ({ ...prev, text: "Mengambil hikmah..." }));
+    const w = await getOnlineWisdom();
+    setWisdom(w);
+  };
+
+  useEffect(() => {
+    refreshWisdom();
+  }, []);
+
+  useEffect(() => {
+    const loadBg = () => {
+      const saved = localStorage.getItem('home-bg-image');
+      if (saved) {
+        setHeroBg(Capacitor.convertFileSrc(saved));
+      } else {
+        setHeroBg(null);
+      }
+    };
+    loadBg();
+    window.addEventListener('bg-change', loadBg);
+    return () => window.removeEventListener('bg-change', loadBg);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -148,9 +208,7 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [prayerTimes]);
 
-  const refreshWisdom = () => {
-    setWisdom(getRandomWisdom());
-  };
+
 
   const currentDate = mounted ? new Date() : new Date("2026-01-13T12:00:00");
 
@@ -214,27 +272,34 @@ export default function HomePage() {
             <div className="flex flex-col justify-center pt-6 pb-12 sm:py-12 lg:py-12 lg:pl-16">
               {/* Next Prayer Card */}
               {!loading && nextPrayer ? (
-                <div className="bg-slate-900 rounded-3xl p-6 sm:p-10 lg:p-12">
-                  <div className="flex items-center justify-between gap-2 text-slate-400 text-sm mb-6 sm:mb-8">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span className="truncate max-w-[150px] sm:max-w-none">{selectedCity?.lokasi || "Jakarta"}</span>
+                <div
+                  className={`rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden transition-all duration-500 bg-cover bg-center ${heroBg ? '' : 'bg-slate-900'}`}
+                  style={heroBg ? { backgroundImage: `url('${heroBg}')` } : {}}
+                >
+                  {heroBg && <div className="absolute inset-0 bg-black/60 z-0" />}
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between gap-2 text-slate-400 text-sm mb-6 sm:mb-8">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        <span className="truncate max-w-[150px] sm:max-w-none">{selectedCity?.lokasi || "Jakarta"}</span>
+                      </div>
+                      <Link href="/sholat" className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                        Ubah Wilayah
+                      </Link>
                     </div>
-                    <Link href="/sholat" className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg transition-colors shrink-0">
-                      Ubah Wilayah
-                    </Link>
-                  </div>
 
-                  <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 lg:mb-10">
-                    <div className="flex-1">
-                      <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Jadwal Selanjutnya</p>
-                      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2">
-                        {nextPrayer.name}
-                      </h2>
-                      <p className="text-xl sm:text-2xl text-slate-300">
-                        {nextPrayer.time} WIB
-                      </p>
-                    </div>
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 lg:mb-10">
+                      <div className="flex-1">
+                        <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Jadwal Selanjutnya</p>
+                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2">
+                          {nextPrayer.name}
+                        </h2>
+                        <p className="text-xl sm:text-2xl text-slate-300">
+                          {nextPrayer.time} WIB
+                        </p>
+                      </div>
+
+                    </div> {/* End of relative z-10 */}
 
                     {/* Mini Audio Player Positioned Right */}
                     {currentTrack && (
@@ -415,59 +480,61 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {/* Al-Quran */}
             <Link
               href="/quran"
-              className="group p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
+              className="group p-5 sm:p-6 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center mb-6">
-                <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Al-Qur&apos;an</h3>
-              <p className="text-sm sm:text-base text-slate-500 mb-6">
-                114 Surah lengkap dengan terjemahan, transliterasi, dan tampilan mushaf per halaman.
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Al-Qur&apos;an</h3>
+              <p className="text-xs text-slate-500 mb-0 line-clamp-2">
+                114 Surah terjemahan & latin
               </p>
-              <div className="flex items-center text-sm font-medium text-slate-900 group-hover:gap-3 gap-2 transition-all">
-                <span>Mulai Membaca</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
             </Link>
 
             {/* Jadwal Sholat */}
             <Link
               href="/sholat"
-              className="group p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
+              className="group p-5 sm:p-6 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center mb-6">
-                <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Jadwal Sholat</h3>
-              <p className="text-sm sm:text-base text-slate-500 mb-6">
-                Waktu sholat akurat untuk seluruh Indonesia dengan countdown real-time.
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Jadwal Sholat</h3>
+              <p className="text-xs text-slate-500 mb-0 line-clamp-2">
+                Waktu akurat seluruh kota
               </p>
-              <div className="flex items-center text-sm font-medium text-slate-900 group-hover:gap-3 gap-2 transition-all">
-                <span>Lihat Jadwal</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
             </Link>
 
             {/* Doa Harian */}
             <Link
               href="/doa"
-              className="group p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
+              className="group p-5 sm:p-6 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center mb-6">
-                <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4">
+                <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Doa Harian</h3>
-              <p className="text-sm sm:text-base text-slate-500 mb-6">
-                Kumpulan doa sehari-hari lengkap dengan Arab, Latin, dan terjemahan.
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Doa Harian</h3>
+              <p className="text-xs text-slate-500 mb-0 line-clamp-2">
+                Doa sehari-hari lengkap
               </p>
-              <div className="flex items-center text-sm font-medium text-slate-900 group-hover:gap-3 gap-2 transition-all">
-                <span>Baca Doa</span>
-                <ChevronRight className="w-4 h-4" />
+            </Link>
+
+            {/* Hadits */}
+            <Link
+              href="/hadits"
+              className="group p-5 sm:p-6 bg-white border border-slate-200 rounded-2xl hover:border-slate-900 transition-all duration-300"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4">
+                <ScrollText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Hadits</h3>
+              <p className="text-xs text-slate-500 mb-0 line-clamp-2">
+                Kumpulan hadits shahih
+              </p>
             </Link>
           </div>
         </div>
@@ -501,9 +568,11 @@ export default function HomePage() {
             {/* Right - Quote */}
             <div className="lg:col-span-3 flex items-center">
               <div className="w-full p-6 sm:p-8 lg:p-10 bg-white rounded-2xl border border-slate-200">
-                <blockquote className="text-lg sm:text-xl lg:text-2xl text-slate-800 font-medium leading-relaxed mb-4">
-                  &ldquo;{wisdom.text}&rdquo;
-                </blockquote>
+                <div className="max-h-48 overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  <blockquote className="text-lg sm:text-xl lg:text-2xl text-slate-800 font-medium leading-relaxed">
+                    &ldquo;{wisdom.text}&rdquo;
+                  </blockquote>
+                </div>
                 <p className="text-slate-500">{wisdom.source}</p>
               </div>
             </div>
@@ -521,58 +590,58 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
+          <div ref={carouselRef} className="flex overflow-x-auto sm:grid sm:grid-cols-2 gap-4 sm:gap-8 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
             {/* Feature 1 */}
-            <div className="flex gap-4 sm:gap-5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700" />
+            <div className="min-w-[85vw] sm:min-w-0 snap-center flex gap-4 sm:gap-5 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm sm:shadow-none sm:bg-transparent sm:border-0 sm:p-0 items-start">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                <BookOpen className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 mb-2">Al-Qur&apos;an Digital</h3>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm leading-relaxed">
                   114 Surah dengan terjemahan Bahasa Indonesia, transliterasi Latin, dan tampilan mushaf 604 halaman.
                 </p>
               </div>
             </div>
 
             {/* Feature 2 */}
-            <div className="flex gap-4 sm:gap-5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700" />
+            <div className="min-w-[85vw] sm:min-w-0 snap-center flex gap-4 sm:gap-5 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm sm:shadow-none sm:bg-transparent sm:border-0 sm:p-0 items-start">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                <Clock className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 mb-2">Jadwal Sholat</h3>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm leading-relaxed">
                   Waktu sholat akurat untuk 500+ kota/kabupaten se-Indonesia dengan countdown real-time.
                 </p>
               </div>
             </div>
 
             {/* Feature 3 */}
-            <div className="flex gap-4 sm:gap-5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700" />
+            <div className="min-w-[85vw] sm:min-w-0 snap-center flex gap-4 sm:gap-5 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm sm:shadow-none sm:bg-transparent sm:border-0 sm:p-0 items-start">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                <Heart className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 mb-2">Doa Harian</h3>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm leading-relaxed">
                   Kumpulan doa-doa untuk aktivitas sehari-hari dengan teks Arab, Latin, dan artinya.
                 </p>
               </div>
             </div>
 
-            {/* Feature 4 */}
-            <div className="flex gap-4 sm:gap-5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700" />
+            {/* Feature 4 - Hadits */}
+            <Link href="/hadits" className="min-w-[85vw] sm:min-w-0 snap-center flex gap-4 sm:gap-5 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm sm:shadow-none sm:bg-transparent sm:border-0 sm:p-0 items-start hover:bg-slate-50 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                <ScrollText className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 mb-2">Coming Soon</h3>
-                <p className="text-slate-500 text-sm">
-                  Tafsir Al-Qur&apos;an, Asmaul Husna, Dzikir Pagi & Petang, dan fitur lainnya.
+                <h3 className="font-bold text-slate-900 mb-2">Kumpulan Hadits</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Baca kumpulan hadits shahih dari perawi terpercaya (Bukhari, Muslim, dll) untuk pedoman hidup.
                 </p>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
