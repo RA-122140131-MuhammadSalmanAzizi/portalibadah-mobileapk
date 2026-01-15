@@ -19,6 +19,7 @@ import {
     Plus,
     Pencil,
     X,
+    Mic,
 } from "lucide-react";
 import {
     City,
@@ -487,12 +488,31 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                                 <input
                                                     type="text"
-                                                    placeholder="Cari kota atau kabupaten..."
+                                                    placeholder="Cari kota atau bicara..."
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                                    className="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                                                    className="w-full pl-11 pr-12 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                                                     autoFocus
                                                 />
+                                                <button
+                                                    onClick={() => {
+                                                        if (!('webkitSpeechRecognition' in window)) {
+                                                            alert("Fitur suara tidak didukung di perangkat ini.");
+                                                            return;
+                                                        }
+                                                        const recognition = new (window as any).webkitSpeechRecognition();
+                                                        recognition.lang = 'id-ID';
+                                                        recognition.start();
+                                                        recognition.onresult = (event: any) => {
+                                                            const transcript = event.results[0][0].transcript;
+                                                            setSearchQuery(transcript.replace('.', '')); // Remove trailing dots
+                                                        };
+                                                    }}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                                    title="Gunakan Suara"
+                                                >
+                                                    <Mic className="w-4 h-4" />
+                                                </button>
                                             </div>
 
                                             <button

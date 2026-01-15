@@ -35,8 +35,7 @@ export default function Navbar() {
     const [isVisible, setIsVisible] = useState(false);
 
     const notificationRef = useRef<HTMLDivElement>(null);
-    const settingsRef = useRef<HTMLDivElement>(null);
-    const [showSettings, setShowSettings] = useState(false);
+
 
     // Clear Cache Handler
     const handleClearCache = () => {
@@ -85,9 +84,7 @@ export default function Navbar() {
             if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
                 setShowNotifications(false);
             }
-            if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-                setShowSettings(false);
-            }
+
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
@@ -194,53 +191,12 @@ export default function Navbar() {
                             </div>
 
                             {/* Settings Button */}
-                            <div className="relative" ref={settingsRef}>
-                                <button
-                                    onClick={() => {
-                                        setShowSettings(!showSettings);
-                                        if (!showSettings) {
-                                            setIsOpen(false);
-                                            setShowNotifications(false);
-                                        }
-                                    }}
-                                    className={`p-2.5 rounded-xl transition-colors relative ${getButtonStyle()}`}
-                                >
-                                    <Settings className="w-5 h-5" />
-                                </button>
-
-                                {/* Settings Overlay (Unified Desktop & Mobile) */}
-                                {showSettings && (
-                                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setShowSettings(false)}>
-                                        <div className="w-full max-w-sm bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden scale-100 animate-scale-in" onClick={e => e.stopPropagation()}>
-                                            <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                                                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                                                    <Settings className="w-4 h-4" />
-                                                    Pengaturan
-                                                </h3>
-                                                <button onClick={() => setShowSettings(false)} className="p-1 rounded-full hover:bg-slate-200 text-slate-400">
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div className="p-4">
-                                                <div className="bg-white rounded-xl mb-2">
-                                                    <button
-                                                        onClick={handleClearCache}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 hover:bg-red-100/80 text-red-700 hover:text-red-800 rounded-xl transition-all border border-red-100 font-medium group"
-                                                    >
-                                                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0 group-hover:bg-white/80 transition-colors">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </div>
-                                                        <span>Hapus Cache & Data</span>
-                                                    </button>
-                                                    <p className="px-1 text-xs text-red-400 mt-2 leading-relaxed">
-                                                        Menghapus cache akan mereset semua data tersimpan seperti bookmark dan riwayat baca. Aplikasi akan dimuat ulang.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <Link
+                                href="/settings"
+                                className={`p-2.5 rounded-xl transition-colors ${getButtonStyle()}`}
+                            >
+                                <Settings className="w-5 h-5" />
+                            </Link>
 
                             {/* Notification Bell */}
                             <div className="relative" ref={notificationRef}>
