@@ -24,7 +24,7 @@ export default function AboutPage() {
                     <h2 className="text-2xl font-bold text-slate-900 mb-1">Portal Ibadah</h2>
                     <p className="text-slate-500 mb-4">Muslim Daily Guide</p>
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700">
-                        <span>Versi 1.1</span>
+                        <span>Versi 1.1.1</span>
                     </div>
                 </div>
 
