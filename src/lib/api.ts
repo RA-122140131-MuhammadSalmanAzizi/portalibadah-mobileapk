@@ -69,7 +69,7 @@ export async function getQuranPageData(pageNumber: number): Promise<QuranPageDat
 
         // Meta info
         const firstVerse = data.verses?.[0];
-        const juz = firstVerse?.juz_number || Math.ceil(pageNumber / 20);
+        const juz = firstVerse?.juz_number || Math.min(30, Math.ceil(pageNumber / 20));
 
         // Get Surahs in this page from our static data
         const surahsInPage = getSurahsByPage(pageNumber).map(s => ({

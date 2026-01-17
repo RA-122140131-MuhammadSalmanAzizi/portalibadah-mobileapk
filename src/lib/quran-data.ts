@@ -120,7 +120,7 @@ export function getSurahsByPage(page: number) {
 }
 
 export function getJuzByPage(page: number): number {
-    return Math.ceil(page / 20); // Rough approximation, accurate enough for UI hints or we can use detailed mapping later if strict accuracy is needed.
+    return Math.min(30, Math.ceil(page / 20)); // Rough approximation, capped at 30
     // For now, let's stick to this or better yet, if we want strict accuracy, we use the API response 'juz_number' which we have in getQuranPageData.
     // But for the grid view, this approximation is commonly used, or we could add a `juz_start_page` map.
 }

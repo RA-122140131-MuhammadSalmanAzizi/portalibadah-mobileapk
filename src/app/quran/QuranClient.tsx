@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Search, BookOpen, ChevronRight, MapPin, Book, Layers, ChevronLeft, Clock, ArrowRight, Bookmark, Trash2 } from "lucide-react";
 import { Surah } from "@/lib/api";
-import { getSurahsByPage } from "@/lib/quran-data";
+import { getSurahsByPage, getJuzByPage } from "@/lib/quran-data";
 
 interface QuranClientProps {
     initialSurahs: Surah[];
@@ -457,7 +457,7 @@ export default function QuranClient({ initialSurahs }: QuranClientProps) {
                         {/* Page Grid */}
                         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-2 sm:gap-3">
                             {displayedPages.map((page) => {
-                                const juz = Math.ceil(page / 20);
+                                const juz = getJuzByPage(page);
                                 const surahs = getSurahsByPage(page);
                                 const mainSurah = surahs[0]?.name_simple || "";
 
