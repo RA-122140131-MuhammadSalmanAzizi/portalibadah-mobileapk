@@ -81,8 +81,8 @@ export default function DocumentationPage() {
                                 <button
                                     onClick={() => scrollToSection(section.id)}
                                     className={`w-full text-left px-3 py-2 rounded-lg text-[10px] md:text-sm font-medium transition-all ${activeSection === section.id
-                                            ? "bg-white/10 text-white"
-                                            : "text-slate-400 hover:text-white hover:bg-white/5"
+                                        ? "bg-white/10 text-white"
+                                        : "text-slate-400 hover:text-white hover:bg-white/5"
                                         }`}
                                 >
                                     {section.label}
@@ -106,8 +106,9 @@ export default function DocumentationPage() {
                 {/* Sidebar Footer */}
                 <div className="mt-8 pt-6 border-t border-white/10">
                     <a
-                        href="/portalibadah.apk"
-                        download
+                        href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex flex-col md:flex-row items-center justify-center gap-2 w-full py-2 md:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg md:rounded-xl font-bold transition-all text-[10px] md:text-sm text-center"
                     >
                         <Download className="w-4 h-4 md:w-4 md:h-4" />
@@ -135,7 +136,7 @@ export default function DocumentationPage() {
 
                     <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-100 mt-6">
                         <p className="text-[10px] md:text-sm text-slate-500 mb-3">Versi Terbaru: <strong>v1.2.0</strong></p>
-                        <a href="/portalibadah.apk" download
+                        <a href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases" target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold hover:bg-black transition-transform hover:-translate-y-1 shadow-md">
                             <Download className="w-4 h-4" />
                             Download App for Android
