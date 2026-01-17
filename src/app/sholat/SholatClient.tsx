@@ -94,6 +94,11 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
         countdown: number;
     } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Use initialCities if contextCities is empty
     const cities = contextCities.length > 0 ? contextCities : initialCities;
@@ -454,7 +459,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                             {/* Current Date */}
                             <div className="flex items-center gap-2 text-white/70 text-sm mb-6">
                                 <Calendar className="w-4 h-4" />
-                                <span>{prayerTimes?.tanggal || formatDate(new Date())}</span>
+                                <span>{mounted ? (prayerTimes?.tanggal || formatDate(new Date())) : "\u00A0"}</span>
                             </div>
 
                             {/* City Selector */}
