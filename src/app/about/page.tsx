@@ -25,7 +25,7 @@ export default function AboutPage() {
                     <p className="text-slate-500 mb-4">Muslim Daily Guide</p>
 
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700 mb-6">
-                        <span>Version 1.1.7</span>
+                        <span>Version 1.1.8</span>
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none mb-6">
@@ -33,9 +33,11 @@ export default function AboutPage() {
                             Aplikasi ini menyediakan fitur Al-Qur'an digital, jadwal sholat akurat, doa harian, dan fitur lainnya tanpa iklan mengganggu.
                         </p>
                         <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.1.7</p>
+                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.1.8</p>
                             <p className="text-emerald-700 text-xs">
-                                Fix: Corrected Juz 31 calculation. Now pages 601-604 correctly display as Juz 30.
+                                New Feature: Added "Download App" button directly in the application.
+                                <br />
+                                Fix: Corrected Juz 31 display issue (v1.1.7).
                             </p>
                         </div>
                     </div>

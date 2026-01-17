@@ -15,7 +15,8 @@ import {
     Settings,
     Trash2,
     Info,
-    ScrollText
+    ScrollText,
+    Download
 } from "lucide-react";
 
 const navLinks = [
@@ -190,6 +191,15 @@ export default function Navbar() {
                                         </Link>
                                     );
                                 })}
+                                {/* Download App Button (Desktop) */}
+                                <a
+                                    href="/portalibadah.apk"
+                                    download
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:-translate-y-0.5`}
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span>App</span>
+                                </a>
                             </div>
 
                             {/* Settings Button */}
@@ -351,6 +361,16 @@ export default function Navbar() {
                                 </Link>
                             );
                         })}
+                        
+                        {/* Download App Button (Mobile Sidebar) */}
+                        <a
+                            href="/portalibadah.apk"
+                            download
+                            className="flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md mt-4"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span>Download App</span>
+                        </a>
                     </nav>
 
                     <div className="mt-10 p-5 bg-slate-50 rounded-2xl">
