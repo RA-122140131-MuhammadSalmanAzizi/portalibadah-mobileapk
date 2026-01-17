@@ -124,7 +124,7 @@ export default function DocumentationPage() {
                 {/* Intro Section */}
                 <section id="intro" className="mb-12 md:mb-20">
                     <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] md:text-xs font-bold mb-4 md:mb-6 border border-indigo-100">
-                        Docs v1.2.0
+                        Docs v1.2.2
                     </div>
                     <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6 leading-tight">
                         Portal Ibadah Mobile
@@ -190,7 +190,21 @@ export default function DocumentationPage() {
 
                     <div className="space-y-8 md:space-y-12 border-l-2 border-slate-100 pl-4 md:pl-8 ml-2">
                         {/* v1.2.0 */}
+                        {/* v1.2.2 */}
                         <div className="border-l-4 border-indigo-500 pl-4 md:pl-6 py-1">
+                            <div className="flex items-baseline gap-3 mb-2">
+                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.2.2</h3>
+                                <span className="text-[10px] md:text-xs font-mono text-slate-400">18 Jan 2026</span>
+                            </div>
+                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
+                                <li><strong>Audio Fix:</strong> Adzan sound now plays full duration (54s) & fixed caching issue.</li>
+                                <li><strong>System Info:</strong> Native version code updated to match Web version.</li>
+                                <li><strong>Maintenance:</strong> Clean build architecture for smaller size.</li>
+                            </ul>
+                        </div>
+
+                        {/* v1.2.0 */}
+                        <div className="border-l-4 border-slate-300 pl-4 md:pl-6 py-1 opacity-75 hover:opacity-100 transition-opacity">
                             <div className="flex items-baseline gap-3 mb-2">
                                 <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.2.0</h3>
                                 <span className="text-[10px] md:text-xs font-mono text-slate-400">18 Jan 2026</span>

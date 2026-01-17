@@ -209,7 +209,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                 title: `Waktunya ${alarm.name}`,
                 body: `Saatnya sholat ${alarm.name} (${alarm.time})`,
                 schedule: { at: fireDate, allowWhileIdle: true, every: 'day' },
-                sound: 'adzannotif.mp3',
+                sound: 'adzan_v1_2_2.mp3',
                 channelId: 'adzan_channel_v3',
                 smallIcon: 'ic_stat_icon_config_sample'
             }]

@@ -1,8 +1,8 @@
 {
   "name": "portalibadah",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "private": true,
-  "releaseNote": "Version 1.2.0: Major Update - Hadits, Doa Fix, Docs Integrated",
+  "releaseNote": "Version 1.2.2: Adzan Audio Fix (Full Duration), Version Info Update",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

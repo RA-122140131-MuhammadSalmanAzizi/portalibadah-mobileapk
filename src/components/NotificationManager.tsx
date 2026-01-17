@@ -44,7 +44,7 @@ export default function NotificationManager() {
                 description: 'Notifikasi Adzan',
                 importance: 5,
                 visibility: 1,
-                sound: 'adzannotif.mp3',
+                sound: 'adzan_v1_2_2.mp3',
                 vibration: true,
             });
 
@@ -126,7 +126,7 @@ export default function NotificationManager() {
                             body: `Saatnya menunaikan sholat ${p} untuk wilayah ${selectedCity.lokasi}`,
                             id: idCounter++,
                             schedule: { at: scheduleDate, allowWhileIdle: true },
-                            sound: 'adzannotif.mp3',
+                            sound: 'adzan_v1_2_2.mp3',
                             channelId: 'adzan_channel_v3',
                             smallIcon: 'ic_stat_icon_config_sample',
                             actionTypeId: 'ALARM_ACTIONS',
