@@ -1,8 +1,8 @@
 {
   "name": "portalibadah",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "private": true,
-  "releaseNote": "Version 1.1.8",
+  "releaseNote": "Version 1.2.0: Major Update - Hadits, Doa Fix, Docs Integrated",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

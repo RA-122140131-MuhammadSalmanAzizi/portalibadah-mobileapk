@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen flex flex-col antialiased">
         <LocationProvider>
           <AudioProvider>
             <AppUpdater />
@@ -54,7 +54,7 @@ export default function RootLayout({
             <NotificationManager />
             <GlobalAudioNavigator />
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 w-full">{children}</main>
             <Footer />
           </AudioProvider>
         </LocationProvider>

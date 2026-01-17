@@ -30,6 +30,7 @@ const navLinks = [
 
 export default function Navbar() {
     const pathname = usePathname();
+
     const [isOpen, setIsOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
 
@@ -152,6 +153,8 @@ export default function Navbar() {
         return "text-slate-600 hover:bg-slate-100";
     };
 
+    if (pathname === "/documentation") return null;
+
     return (
         <>
             {/* Desktop Navbar */}
@@ -193,8 +196,9 @@ export default function Navbar() {
                                 })}
                                 {/* Download App Button (Desktop) */}
                                 <a
-                                    href="/portalibadah.apk"
-                                    download
+                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
+target="_blank"
+rel="noopener noreferrer"
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:-translate-y-0.5`}
                                 >
                                     <Download className="w-4 h-4" />

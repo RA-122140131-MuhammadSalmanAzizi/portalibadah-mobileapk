@@ -1,8 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BookOpen, Clock, Heart, Moon, Github, Mail } from "lucide-react";
 
 export default function Footer() {
+    const pathname = usePathname();
     const currentYear = new Date().getFullYear();
+
+    if (pathname === '/documentation') return null;
 
     return (
         <footer className="bg-slate-50 border-t border-slate-100 mt-auto hidden md:block">

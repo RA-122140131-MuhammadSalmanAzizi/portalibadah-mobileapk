@@ -25,32 +25,30 @@ export default function AboutPage() {
                     <p className="text-slate-500 mb-4">Muslim Daily Guide</p>
 
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700 mb-6">
-                        <span>Version 1.1.8</span>
+                        <span>Version 1.2.0</span>
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none mb-6">
                         <p className="text-slate-600 leading-relaxed text-sm mb-4">
                             Aplikasi ini menyediakan fitur Al-Qur'an digital, jadwal sholat akurat, doa harian, dan fitur lainnya tanpa iklan mengganggu.
                         </p>
-                        <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.1.8</p>
-                            <p className="text-emerald-700 text-xs">
-                                New Feature: Added "Download App" button directly in the application.
-                                <br />
-                                Fix: Corrected Juz 31 display issue (v1.1.7).
-                            </p>
+                        <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-left">
+                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.2.0 (Major Update)</p>
+                            <ul className="text-emerald-700 text-xs list-disc pl-4 space-y-1">
+                                <li><strong>Hadits v2:</strong> Fitur Search Lengkap, Filter Kitab, & Tampilan Modern.</li>
+                                <li><strong>Integrasi Total:</strong> Dokumentasi & Changelog kini di dalam aplikasi.</li>
+                                <li><strong>Optimization:</strong> Perbaikan signifikan pada Doa Harian & performa aplikasi.</li>
+                            </ul>
                         </div>
                     </div>
 
-                    <a
-                        href="https://ra-122140131-muhammadsalmanazizi.github.io/pimoapk-docs/"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <Link
+                        href="/documentation"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors shadow-sm"
                     >
                         <span>Documentation</span>
                         <Info className="w-4 h-4 ml-1" />
-                    </a>
+                    </Link>
                 </div>
 
                 {/* Developer */}

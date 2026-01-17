@@ -210,9 +210,16 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
                             key={doa.id}
                             className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg transition-all duration-300"
                         >
-                            <button
+                            <div
                                 onClick={() => toggleExpand(doa.id)}
-                                className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        toggleExpand(doa.id);
+                                    }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
                             >
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shrink-0 shadow-lg">
@@ -244,7 +251,7 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
                                         <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 " />
                                     </div>
                                 </div>
-                            </button>
+                            </div>
 
                             {expandedId === doa.id && (
                                 <div className="px-4 sm:px-5 pb-5 sm:pb-6 animate-fade-in">
