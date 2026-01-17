@@ -39,7 +39,7 @@ export default function NotificationManager() {
         if (Capacitor.getPlatform() === 'web') return;
         try {
             await LocalNotifications.createChannel({
-                id: 'adzan_channel_v3',
+                id: 'adzan_channel_v1_2_3',
                 name: 'Adzan Sholat V3',
                 description: 'Notifikasi Adzan',
                 importance: 5,
@@ -127,7 +127,7 @@ export default function NotificationManager() {
                             id: idCounter++,
                             schedule: { at: scheduleDate, allowWhileIdle: true },
                             sound: 'adzan_v1_2_2.mp3',
-                            channelId: 'adzan_channel_v3',
+                            channelId: 'adzan_channel_v1_2_3',
                             smallIcon: 'ic_stat_icon_config_sample',
                             actionTypeId: 'ALARM_ACTIONS',
                             extra: null

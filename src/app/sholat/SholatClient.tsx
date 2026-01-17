@@ -210,7 +210,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                 body: `Saatnya sholat ${alarm.name} (${alarm.time})`,
                 schedule: { at: fireDate, allowWhileIdle: true, every: 'day' },
                 sound: 'adzan_v1_2_2.mp3',
-                channelId: 'adzan_channel_v3',
+                channelId: 'adzan_channel_v1_2_3',
                 smallIcon: 'ic_stat_icon_config_sample'
             }]
         });
