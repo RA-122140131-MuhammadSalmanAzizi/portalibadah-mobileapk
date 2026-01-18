@@ -30,6 +30,11 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
   },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
