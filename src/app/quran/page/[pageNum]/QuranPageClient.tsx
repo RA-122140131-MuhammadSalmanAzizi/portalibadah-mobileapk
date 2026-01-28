@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { TransformWrapper, TransformComponent, ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Book, BookOpen, Home, Sun, Moon, Coffee, Info, Bookmark, Play, Pause, Repeat, Repeat1, SkipForward, X, Square, ArrowRightToLine } from "lucide-react";
@@ -41,6 +42,8 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const touchEnd = useRef<number | null>(null);
     const isHorizontalSwipe = useRef<boolean | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
+    const isZoomedRef = useRef(false);
 
     // Audio Context
     const { playQueue, pause, stop, toggle, isPlaying, currentTrack, playbackMode, setPlaybackMode } = useAudio();
@@ -53,6 +56,11 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     // 2. DATA FETCHING & SIDE EFFECTS
 
     useEffect(() => {
+        if (transformRef.current) {
+            transformRef.current.resetTransform();
+            isZoomedRef.current = false;
+        }
+
         const fetchPage = async () => {
             if (pagesCache.has(currentPage)) {
                 setPageData(pagesCache.get(currentPage)!);
@@ -187,6 +195,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     // --- SWIPE LOGIC WITH DIRECTION LOCK & SEAMLESS LOOP ---
 
     const onTouchStart = (e: React.TouchEvent) => {
+        if (isZoomedRef.current) return;
         setIsSwiping(true);
         touchStart.current = e.targetTouches[0].clientX;
         touchStartY.current = e.targetTouches[0].clientY;
@@ -300,8 +309,8 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
 
     return (
         <div className={`min-h-screen pt-[168px] sm:pt-40 pb-20 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] text-slate-200' :
-                theme === 'yellow' ? 'bg-[#FFFBE8] text-slate-900' :
-                    'bg-[#FAFAFA] text-slate-800'
+            theme === 'yellow' ? 'bg-[#FFFBE8] text-slate-900' :
+                'bg-[#FAFAFA] text-slate-800'
             }`}>
             {notification && (
                 <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-up w-max max-w-[90vw]">
@@ -314,8 +323,8 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
 
             {/* HEADER */}
             <header className={`fixed top-14 sm:top-16 left-0 right-0 z-40 transition-colors duration-300 border-b shadow-sm ${theme === 'dark' ? 'bg-[#18181B]/95 border-white/5' :
-                    theme === 'yellow' ? 'bg-[#f8f1e0]/95 border-[#e8dfc8]' :
-                        'bg-white/95 border-slate-100'
+                theme === 'yellow' ? 'bg-[#f8f1e0]/95 border-[#e8dfc8]' :
+                    'bg-white/95 border-slate-100'
                 } backdrop-blur-md`}>
                 <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -419,7 +428,17 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
 
                             {/* CENTER (CURRENT) */}
                             <div className="w-1/3 h-full flex items-center justify-center relative bg-[#FFFBE8]">
-                                <img src={getKemenagImageUrl(currentPage)} className="h-full w-auto object-contain block mix-blend-multiply dark:mix-blend-normal dark:opacity-90" onLoad={() => setLoading(false)} draggable={false} />
+                                <TransformWrapper
+                                    ref={transformRef}
+                                    initialScale={1}
+                                    minScale={1}
+                                    maxScale={3}
+                                    onTransformed={(e) => isZoomedRef.current = e.state.scale > 1.01}
+                                >
+                                    <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <img src={getKemenagImageUrl(currentPage)} className="h-full w-auto object-contain block mix-blend-multiply dark:mix-blend-normal dark:opacity-90" onLoad={() => setLoading(false)} draggable={false} />
+                                    </TransformComponent>
+                                </TransformWrapper>
                                 {theme === 'dark' && <div className="absolute inset-0 bg-black/10 pointer-events-none mix-blend-overlay"></div>}
                             </div>
 
