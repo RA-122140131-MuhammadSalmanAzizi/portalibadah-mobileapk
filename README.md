@@ -21,6 +21,17 @@ Aplikasi Portal Ibadah versi mobile (Android) yang dibangun menggunakan Next.js 
   - Perbaikan format Tanggal Hijriyah (Fixed "Juli" -> "Rajab").
   - Optimasi permission handling untuk Notifikasi & Lokasi.
   - Perbaikan Splash Screen dan App Name.
+### Versi 1.2.2
+- **Bug Fix**: Perbaikan durasi audio Adzan (Full Duration).
+- **Update**: Informasi versi aplikasi diperbarui.
+
+### Versi 1.3.0
+- **Zero-Flicker Navigation**: Transisi antar halaman Al-Qur'an kini **seamless** tanpa refresh/kedip pada Header & Audio Player. Menggunakan internal state & `pushState`.
+- **Enhanced Swipe**: Logic swipe gesture yang lebih natural (Kanan->Next, Kiri->Prev) dengan **Direction Locking** untuk mencegah pantulan saat scroll vertikal.
+- **Improved Audio Controls**: 
+  - Tombol Stop kini *persistent* (tetap muncul saat pause).
+  - Tampilan tombol lebih konsisten dan modern.
+- **Performance**: Optimasi prefetching gambar halaman tetangga (+/- 2 halaman).
 
 ## Tech Stack
 - **Framework**: Next.js 14+ (App Router)
