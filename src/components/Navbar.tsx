@@ -254,7 +254,7 @@ export default function Navbar() {
 
                                                 {/* APK Option */}
                                                 <a
-                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/latest"
+                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/tag/v1.3.0.1"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={() => setShowDownloadMenu(false)}
@@ -434,16 +434,36 @@ export default function Navbar() {
                             );
                         })}
 
-                        {/* Download App Button (Mobile Sidebar) */}
-                        <a
-                            href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md mt-4"
-                        >
-                            <Download className="w-5 h-5" />
-                            <span>Download App</span>
-                        </a>
+                        {/* Download App Options (Mobile Sidebar) */}
+                        <div className="mt-6 space-y-3">
+                            <p className="text-xs font-bold text-slate-400 px-4 uppercase tracking-wider">Download & Install</p>
+
+                            {/* APK Option - Primary for Android */}
+                            <a
+                                href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/tag/v1.3.0.1"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
+                            >
+                                <Smartphone className="w-5 h-5" />
+                                <div className="flex flex-col">
+                                    <span>Download APK</span>
+                                    <span className="text-[10px] opacity-80 font-medium">✓ Rekomendasi Android</span>
+                                </div>
+                            </a>
+
+                            {/* PWA Option */}
+                            <button
+                                onClick={handleInstallPWA}
+                                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-white border-2 border-slate-100 text-slate-700 hover:bg-slate-50"
+                            >
+                                <Monitor className="w-5 h-5 text-purple-600" />
+                                <div className="flex flex-col text-left">
+                                    <span>Versi Web App (PWA)</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">iOS / Tanpa Install APK</span>
+                                </div>
+                            </button>
+                        </div>
                     </nav>
 
                     <div className="mt-10 p-5 bg-slate-50 rounded-2xl">
