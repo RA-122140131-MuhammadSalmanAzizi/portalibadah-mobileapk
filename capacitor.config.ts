@@ -6,22 +6,23 @@ const config: CapacitorConfig = {
   webDir: 'out',
   plugins: {
     SplashScreen: {
-      backgroundColor: "#ffffff",
+      backgroundColor: '#ffffff',
       launchShowDuration: 2000,
       showSpinner: false,
-      androidScaleType: "CENTER_CROP",
+      androidScaleType: 'CENTER_CROP',
       splashFullScreen: true,
-      splashImmersive: true,
+      splashImmersive: true
     },
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample",
-      iconColor: "#488AFF",
-      sound: "adzannotif.mp3",
+      smallIcon: 'ic_stat_icon_config_sample',
+      iconColor: '#488AFF',
+      sound: 'adzannotif.mp3'
     },
     CapacitorUpdater: {
       autoUpdate: true,
-    },
-  },
+      updateUrl: 'https://raw.githubusercontent.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/main/update.json'
+    }
+  }
 };
 
 export default config;
