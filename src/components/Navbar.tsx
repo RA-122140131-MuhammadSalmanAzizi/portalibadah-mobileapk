@@ -19,8 +19,12 @@ import {
     Download,
     Smartphone,
     Monitor,
-    ChevronDown
+    ChevronDown,
+    RefreshCw
 } from "lucide-react";
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { Toast } from '@capacitor/toast';
+import { Dialog } from '@capacitor/dialog';
 
 const navLinks = [
     { href: "/", label: "Beranda", icon: Home },
@@ -451,16 +455,56 @@ export default function Navbar() {
                                     <span className="text-[10px] text-slate-400 font-medium">iOS / Tanpa Install APK</span>
                                 </div>
                             </button>
+
+                            {/* OTA Debugger (Hidden by default, can be useful for testing) */}
+                            <div className="pt-4 border-t border-slate-100">
+                                <p className="text-[10px] font-bold text-slate-400 px-4 uppercase tracking-wider mb-2">OTA Status (Debug)</p>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await Toast.show({ text: 'Mengecek update...', duration: 'short' });
+                                            const status = await CapacitorUpdater.getLatest();
+                                            await Dialog.alert({
+                                                title: 'OTA Status',
+                                                message: `Latest: ${JSON.stringify(status)}`
+                                            });
+
+                                            if (status.url) {
+                                                // Force Download
+                                                await Toast.show({ text: 'Mulai download...', duration: 'short' });
+                                                const download = await CapacitorUpdater.download({
+                                                    version: status.version,
+                                                    url: status.url
+                                                });
+
+                                                // Set & Reload
+                                                await CapacitorUpdater.set(download);
+                                            }
+
+                                        } catch (e: any) {
+                                            await Dialog.alert({
+                                                title: 'OTA Error',
+                                                message: e?.message || JSON.stringify(e)
+                                            });
+                                        }
+                                    }}
+                                    className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    <span>Cek & Install Update</span>
+                                </button>
+                            </div>
                         </div>
                     </nav>
 
-                    <div className="mt-10 p-5 bg-slate-50 rounded-2xl">
+                    <div className="mt-5 p-5 bg-slate-50 rounded-2xl">
                         <p className="text-sm text-slate-600">
                             🕌 Semoga Allah memudahkan ibadah Anda
                         </p>
                     </div>
                 </div>
             </div>
+
         </>
     );
 }
