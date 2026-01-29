@@ -1,6 +1,6 @@
 {
   "name": "portalibadah",
-  "version": "1.3.10",
+  "version": "1.3.11",
   "private": true,
   "releaseNote": "Version 1.3.0: Zero-Flicker Quran Navigation, Smooth Swipe & Persistent Audio Controls",
   "scripts": {

@@ -461,30 +461,38 @@ export default function Navbar() {
                                 <p className="text-[10px] font-bold text-slate-400 px-4 uppercase tracking-wider mb-2">OTA Status (Debug)</p>
                                 <button
                                     onClick={async () => {
+                                        const TARGET_URL = 'https://cdn.jsdelivr.net/gh/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk@main/update.json';
+
                                         try {
-                                            await Toast.show({ text: 'Mengecek update...', duration: 'short' });
-                                            const status = await CapacitorUpdater.getLatest();
+                                            await Toast.show({ text: 'Mengecek via JS Fetch... (v1.3.11)', duration: 'short' });
+
+                                            // 1. Fetch JSON using Standard JS (Bypassing Plugin Network)
+                                            const res = await fetch(TARGET_URL + '?t=' + Date.now());
+                                            if (!res.ok) throw new Error(`Fetch Error: ${res.status} ${res.statusText}`);
+
+                                            const updateData = await res.json();
+
                                             await Dialog.alert({
-                                                title: 'OTA Status',
-                                                message: `Latest: ${JSON.stringify(status)}`
+                                                title: 'Fetch Sukses!',
+                                                message: `Server: v${updateData.version}\nURL: ${updateData.url}`
                                             });
 
-                                            if (status.url) {
-                                                // Force Download
-                                                await Toast.show({ text: 'Mulai download...', duration: 'short' });
+                                            // 2. Instruct Plugin to Download specific URL
+                                            if (updateData.url) {
+                                                await Toast.show({ text: 'Mulai download bundle...', duration: 'short' });
                                                 const download = await CapacitorUpdater.download({
-                                                    version: status.version,
-                                                    url: status.url
+                                                    version: updateData.version,
+                                                    url: updateData.url
                                                 });
 
-                                                // Set & Reload
+                                                // 3. Set & Reload
                                                 await CapacitorUpdater.set(download);
                                             }
 
                                         } catch (e: any) {
                                             await Dialog.alert({
-                                                title: 'OTA Error',
-                                                message: e?.message || JSON.stringify(e)
+                                                title: 'Debug Error',
+                                                message: `JS Fetch Failed:\n${e?.message || JSON.stringify(e)}`
                                             });
                                         }
                                     }}
