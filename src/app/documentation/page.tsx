@@ -124,7 +124,7 @@ export default function DocumentationPage() {
                 {/* Intro Section */}
                 <section id="intro" className="mb-12 md:mb-20">
                     <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] md:text-xs font-bold mb-4 md:mb-6 border border-indigo-100">
-                        Docs v1.2.2
+                        Dokumetasi resmi
                     </div>
                     <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6 leading-tight">
                         Portal Ibadah Mobile

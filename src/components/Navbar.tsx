@@ -430,7 +430,7 @@ export default function Navbar() {
 
                             {/* APK Option - Primary for Android */}
                             <a
-                                href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/tag/v1.3.0.1"
+                                href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
@@ -450,7 +450,7 @@ export default function Navbar() {
                                 <Monitor className="w-5 h-5 text-purple-600" />
                                 <div className="flex flex-col text-left">
                                     <span>Versi Web App (PWA)</span>
-                                    <span className="text-[10px] text-slate-400 font-medium">iOS / Tanpa Install APK</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">iPhone / iOS / Tanpa Install APK</span>
                                 </div>
                             </button>
 
