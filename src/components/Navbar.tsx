@@ -496,10 +496,10 @@ export default function Navbar() {
                                             });
                                         }
                                     }}
-                                    className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
                                 >
                                     <RefreshCw className="w-4 h-4" />
-                                    <span>Cek & Install Update</span>
+                                    <span>Cek Update (v1.3.12) ✅</span>
                                 </button>
                             </div>
                         </div>
