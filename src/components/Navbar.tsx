@@ -16,7 +16,10 @@ import {
     Trash2,
     Info,
     ScrollText,
-    Download
+    Download,
+    Smartphone,
+    Monitor,
+    ChevronDown
 } from "lucide-react";
 
 const navLinks = [
@@ -33,12 +36,15 @@ export default function Navbar() {
 
     const [isOpen, setIsOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     // Animation states
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
     const notificationRef = useRef<HTMLDivElement>(null);
+    const downloadRef = useRef<HTMLDivElement>(null);
 
 
     // Clear Cache Handler
@@ -88,13 +94,33 @@ export default function Navbar() {
             if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
                 setShowNotifications(false);
             }
-
+            if (downloadRef.current && !downloadRef.current.contains(event.target as Node)) {
+                setShowDownloadMenu(false);
+            }
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    // Listen for PWA install prompt
+    useEffect(() => {
+        const handleBeforeInstall = (e: Event) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    }, []);
+
+    const handleInstallPWA = async () => {
+        if (deferredPrompt) {
+            await deferredPrompt.prompt();
+            setDeferredPrompt(null);
+        }
+        setShowDownloadMenu(false);
+    };
 
     // Listen for Quran theme changes
     const [quranTheme, setQuranTheme] = useState<'light' | 'dark' | 'yellow' | null>(null);
@@ -194,16 +220,58 @@ export default function Navbar() {
                                         </Link>
                                     );
                                 })}
-                                {/* Download App Button (Desktop) */}
-                                <a
-                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:-translate-y-0.5`}
-                                >
-                                    <Download className="w-4 h-4" />
-                                    <span>App</span>
-                                </a>
+                                {/* Download App Button (Desktop) with Dropdown */}
+                                <div className="relative" ref={downloadRef}>
+                                    <button
+                                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:-translate-y-0.5`}
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span>App</span>
+                                        <ChevronDown className={`w-3 h-3 transition-transform ${showDownloadMenu ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {/* Download Dropdown */}
+                                    {showDownloadMenu && (
+                                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                                            <div className="p-2">
+                                                {/* PWA Option */}
+                                                <button
+                                                    onClick={handleInstallPWA}
+                                                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                                                >
+                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                        <Monitor className="w-5 h-5 text-purple-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900 text-sm">Web App (PWA)</p>
+                                                        <p className="text-xs text-slate-500">iOS, Desktop, Browser</p>
+                                                    </div>
+                                                </button>
+
+                                                {/* Divider */}
+                                                <div className="border-t border-slate-100 my-1"></div>
+
+                                                {/* APK Option */}
+                                                <a
+                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/latest"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={() => setShowDownloadMenu(false)}
+                                                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-emerald-50 transition-colors"
+                                                >
+                                                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                                        <Smartphone className="w-5 h-5 text-emerald-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900 text-sm">Download APK</p>
+                                                        <p className="text-xs text-emerald-600 font-medium">✓ Direkomendasikan untuk Android</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Settings Button */}

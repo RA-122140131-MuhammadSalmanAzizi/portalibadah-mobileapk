@@ -8,6 +8,7 @@ import NotificationManager from "@/components/NotificationManager";
 import { AudioProvider } from "@/contexts/AudioContext";
 import GlobalAudioNavigator from "@/components/GlobalAudioNavigator";
 import AppUpdater from "@/components/AppUpdater";
+import InstallPrompt from "@/components/InstallPrompt";
 
 
 export const metadata: Metadata = {
@@ -61,6 +62,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-1 w-full">{children}</main>
             <Footer />
+            <InstallPrompt />
           </AudioProvider>
         </LocationProvider>
       </body>
