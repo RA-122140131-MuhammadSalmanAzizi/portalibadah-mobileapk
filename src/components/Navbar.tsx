@@ -104,22 +104,10 @@ export default function Navbar() {
         };
     }, []);
 
-    // Listen for PWA install prompt
-    useEffect(() => {
-        const handleBeforeInstall = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-    }, []);
-
-    const handleInstallPWA = async () => {
-        if (deferredPrompt) {
-            await deferredPrompt.prompt();
-            setDeferredPrompt(null);
-        }
+    const handleOpenInstallPrompt = () => {
+        window.dispatchEvent(new Event('open-install-prompt'));
         setShowDownloadMenu(false);
+        setIsOpen(false); // Close mobile menu too
     };
 
     // Listen for Quran theme changes
@@ -237,7 +225,7 @@ export default function Navbar() {
                                             <div className="p-2">
                                                 {/* PWA Option */}
                                                 <button
-                                                    onClick={handleInstallPWA}
+                                                    onClick={handleOpenInstallPrompt}
                                                     className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-50 transition-colors text-left"
                                                 >
                                                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -454,7 +442,7 @@ export default function Navbar() {
 
                             {/* PWA Option */}
                             <button
-                                onClick={handleInstallPWA}
+                                onClick={handleOpenInstallPrompt}
                                 className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all duration-200 bg-white border-2 border-slate-100 text-slate-700 hover:bg-slate-50"
                             >
                                 <Monitor className="w-5 h-5 text-purple-600" />

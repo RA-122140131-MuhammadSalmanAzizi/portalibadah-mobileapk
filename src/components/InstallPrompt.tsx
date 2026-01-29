@@ -51,7 +51,24 @@ export default function InstallPrompt() {
             return () => clearTimeout(timer);
         }
 
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+        // Listen for custom trigger event (e.g. from Navbar)
+        const handleOpenPrompt = () => {
+            setShowPrompt(true);
+            setPlatform(prev => {
+                // Re-detect platform if needed, though state should differ
+                if (prev !== 'unknown') return prev;
+                const userAgent = navigator.userAgent.toLowerCase();
+                if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+                if (/android/.test(userAgent)) return 'android';
+                return 'desktop';
+            });
+        };
+        window.addEventListener('open-install-prompt', handleOpenPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+            window.removeEventListener('open-install-prompt', handleOpenPrompt);
+        };
     }, []);
 
     const handleDismiss = () => {
