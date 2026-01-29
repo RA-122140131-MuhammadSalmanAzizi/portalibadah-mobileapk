@@ -244,7 +244,7 @@ export default function Navbar() {
 
                                                 {/* APK Option */}
                                                 <a
-                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/tag/v1.3.0.1"
+                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={() => setShowDownloadMenu(false)}
