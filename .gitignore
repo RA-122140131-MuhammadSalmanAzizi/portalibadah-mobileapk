@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# APK and OTA bundles (upload to GitHub Releases instead)
+*.apk
+bundle.zip
+
+# Capgo keys (no longer used)
+.capgo_key*
+.capgo
