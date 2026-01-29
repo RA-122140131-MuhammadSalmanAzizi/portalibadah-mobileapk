@@ -135,11 +135,11 @@ export default function DocumentationPage() {
                     </p>
 
                     <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-100 mt-6">
-                        <p className="text-[10px] md:text-sm text-slate-500 mb-3">Versi Terbaru: <strong>v1.2.0</strong></p>
+                        <p className="text-[10px] md:text-sm text-slate-500 mb-3">Versi Terbaru: <strong>v1.4</strong></p>
                         <a href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases" target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold hover:bg-black transition-transform hover:-translate-y-1 shadow-md">
                             <Download className="w-4 h-4" />
-                            Download App for Android
+                            Download App v1.4
                         </a>
                     </div>
                 </section>
@@ -153,7 +153,7 @@ export default function DocumentationPage() {
                             { title: "Jadwal Sholat Akurat", desc: "Perhitungan waktu sholat presisi untuk 500+ kota di Indonesia." },
                             { title: "Kumpulan Hadits", desc: "Koleksi hadits pilihan dari Shahih Bukhari dengan tampilan modern." },
                             { title: "Doa Harian", desc: "Himpunan doa-doa penting untuk berbagai aktivitas sehari-hari." },
-                            { title: "Tanpa Iklan", desc: "Fokus beribadah tanpa gangguan iklan pop-up atau banner." },
+                            { title: "Smart Notification", desc: "Sistem notifikasi update yang cerdas dan handal (v1.4+)." },
                         ].map((item, i) => (
                             <li key={i} className="flex gap-3 md:gap-4">
                                 <div className="hidden md:flex w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-100 items-center justify-center shrink-0 mt-1">
@@ -175,8 +175,8 @@ export default function DocumentationPage() {
                         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-xs md:text-base">
                             <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Framework:</strong> Next.js 16</li>
                             <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Style:</strong> Tailwind CSS</li>
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Runtime:</strong> Capacitor v6</li>
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Update:</strong> Capgo Cloud</li>
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Runtime:</strong> Capacitor v7</li>
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Update:</strong> Simple Notifier (Fetch API)</li>
                         </ul>
                     </div>
                 </section>
@@ -189,6 +189,18 @@ export default function DocumentationPage() {
                     </h2>
 
                     <div className="space-y-8 md:space-y-12 border-l-2 border-slate-100 pl-4 md:pl-8 ml-2">
+                        {/* v1.4 */}
+                        <div className="border-l-4 border-indigo-600 pl-4 md:pl-6 py-1">
+                            <div className="flex items-baseline gap-3 mb-2">
+                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.4 (Fresh Start)</h3>
+                                <span className="text-[10px] md:text-xs font-mono text-slate-400">30 Jan 2026</span>
+                            </div>
+                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
+                                <li><strong>Architecture Refresh:</strong> Transisi dari Auto-OTA yang tidak stabil ke Manual Update Notification yang handal.</li>
+                                <li><strong>Network Logic Update:</strong> Fix "Response Error" & SSL issues dengan menggunakan Native JS Fetch.</li>
+                                <li><strong>User Experience:</strong> Perbaikan minor pada navigasi dan dokumentasi.</li>
+                            </ul>
+                        </div>
                         {/* v1.2.0 */}
                         {/* v1.2.2 */}
                         <div className="border-l-4 border-indigo-500 pl-4 md:pl-6 py-1">

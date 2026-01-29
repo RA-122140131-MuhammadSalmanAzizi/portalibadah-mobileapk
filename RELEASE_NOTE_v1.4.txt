@@ -1,0 +1,14 @@
+# v1.4 - Fresh Start 🚀
+
+Release ini menandai "Fresh Start" untuk arsitektur update Portal Ibadah, demi kenyamanan dan kestabilan pengguna.
+
+### 🆕 What's New
+*   **Simple Update Notifier:** Kami mengganti sistem Auto-OTA yang sering bermasalah di beberapa perangkat dengan sistem notifikasi manual yang jauh lebih handal. Aplikasi akan memberi tahu Anda jika ada update, dan mengarahkan ke halaman download resmi.
+*   **Native Stability:** Menghapus plugin background update yang memberatkan, membuat aplikasi lebih ringan dan cepat saat dibuka.
+*   **Fix Network Issues:** Memperbaiki masalah koneksi (SSL/Response Error) yang dialami pengguna dengan jaringan tertentu.
+*   **Updated Documentation:** Dokumentasi dan informasi versi dalam aplikasi telah diperbarui.
+
+### 📦 Install
+Silakan download file APK di bawah ini dan install seperti biasa. Jika Anda memiliki versi sebelumnya (v1.3.x), disarankan untuk uninstall terlebih dahulu untuk hasil maksimal, namun update langsung (overwrite) juga seharusnya aman.
+
+**File:** `Portal Ibadah v1.4.apk`

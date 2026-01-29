@@ -25,7 +25,7 @@ export default function AboutPage() {
                     <p className="text-slate-500 mb-4">Muslim Daily Guide</p>
 
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700 mb-6">
-                        <span>Version 1.3.0</span>
+                        <span>Version 1.4</span>
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none mb-6">
@@ -33,11 +33,11 @@ export default function AboutPage() {
                             Aplikasi ini menyediakan fitur Al-Qur'an digital, jadwal sholat akurat, doa harian, dan fitur lainnya tanpa iklan mengganggu.
                         </p>
                         <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-left">
-                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.3.0</p>
+                            <p className="text-emerald-900 font-bold text-xs mb-1">What's New in v1.4</p>
                             <ul className="text-emerald-700 text-xs list-disc pl-4 space-y-1">
-                                <li><strong>Zero-Flicker Nav:</strong> Transisi halaman Qur'an mulus tanpa refresh Header/Player.</li>
-                                <li><strong>Smart Swipe:</strong> Navigasi geser lebih natural dengan direction locking (anti-mantul).</li>
-                                <li><strong>Improved Audio:</strong> Kontrol audio lebih stabil & persisten antar halaman.</li>
+                                <li><strong>Simplified Update System:</strong> Notifikasi update lebih handal dan langsung mengarahkan ke halaman download resmi.</li>
+                                <li><strong>Native Stability:</strong> Penghapusan plugin yang tidak stabil untuk performa aplikasi yang lebih ringan dan minim error.</li>
+                                <li><strong>Network Logic:</strong> Perbaikan konfigurasi jaringan untuk memastikan aplikasi bisa berjalan di berbagai kondisi internet.</li>
                             </ul>
                         </div>
                     </div>
