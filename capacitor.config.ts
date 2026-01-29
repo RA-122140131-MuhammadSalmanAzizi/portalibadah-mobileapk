@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
     },
     CapacitorUpdater: {
       autoUpdate: true,
-      updateUrl: 'https://raw.githubusercontent.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/main/update.json'
+      updateUrl: 'https://cdn.jsdelivr.net/gh/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk@main/update.json'
     }
   }
 };
