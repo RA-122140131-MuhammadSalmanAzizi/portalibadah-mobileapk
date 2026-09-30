@@ -555,46 +555,21 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                     <h2 className="text-sm font-semibold text-slate-900">
                         Pengingat tambahan <span className="font-normal text-slate-500">({customAlarms.length}/5)</span>
                     </h2>
-                    {customAlarms.length < 5 && !addingAlarm && (
-                        <button onClick={() => setAddingAlarm(true)} className="flex items-center gap-1 text-sm font-semibold text-emerald-600">
+                    {customAlarms.length < 5 && (
+                        <button onClick={() => { setNewAlarmName(""); setNewAlarmTime(""); setAddingAlarm(true); }} className="flex items-center gap-1 text-sm font-semibold text-emerald-600">
                             <Plus className="w-4 h-4" />
                             Tambah
                         </button>
                     )}
                 </div>
 
-                {customAlarms.length === 0 && !addingAlarm && (
+                {customAlarms.length === 0 && (
                     <p className="px-4 py-4 text-sm text-slate-500">Misalnya Tahajud atau Dhuha, dengan jam pilihanmu sendiri.</p>
                 )}
 
                 <ul className="divide-y divide-slate-100">
                     {customAlarms.map((alarm) => (
                         <li key={alarm.id} className="pl-4 pr-2 py-2">
-                            {editingId === alarm.id ? (
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={editName}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        aria-label="Nama pengingat"
-                                        className="flex-1 min-w-0 h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
-                                        autoFocus
-                                    />
-                                    <input
-                                        type="time"
-                                        value={editTime}
-                                        onChange={(e) => setEditTime(e.target.value)}
-                                        aria-label="Jam pengingat"
-                                        className="w-28 h-10 px-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
-                                    />
-                                    <button onClick={saveEdit} aria-label="Simpan" className="w-10 h-10 flex items-center justify-center text-emerald-600">
-                                        <Check className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={cancelEditing} aria-label="Batal" className="w-10 h-10 flex items-center justify-center text-slate-400">
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            ) : (
                                 <div className="flex items-center gap-3">
                                     <Clock className="w-5 h-5 text-slate-400 shrink-0" />
                                     <span className="font-medium text-slate-700 truncate">{alarm.name}</span>
@@ -616,49 +591,102 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                         </button>
                                     </div>
                                 </div>
-                            )}
                         </li>
                     ))}
                 </ul>
 
-                {addingAlarm && customAlarms.length < 5 && (
-                    <div className="p-3 border-t border-slate-100 flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={newAlarmName}
-                            onChange={(e) => setNewAlarmName(e.target.value)}
-                            placeholder="Nama, mis. Tahajud"
-                            aria-label="Nama pengingat baru"
-                            className="flex-1 min-w-0 h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500 placeholder:text-slate-400"
-                            autoFocus
-                        />
-                        <input
-                            type="time"
-                            value={newAlarmTime}
-                            onChange={(e) => setNewAlarmTime(e.target.value)}
-                            aria-label="Jam pengingat baru"
-                            className="w-28 h-10 px-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
-                        />
-                        <button
-                            onClick={async () => {
-                                await addCustomAlarm();
-                                setAddingAlarm(false);
-                            }}
-                            disabled={!newAlarmName || !newAlarmTime}
-                            className="h-10 px-3 rounded-lg bg-emerald-500 text-white text-sm font-semibold disabled:opacity-40"
-                        >
-                            Simpan
-                        </button>
-                        <button onClick={() => setAddingAlarm(false)} aria-label="Batal" className="w-8 h-10 flex items-center justify-center text-slate-400">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                )}
             </section>
 
             <p className="text-xs text-slate-500 leading-relaxed px-1">
                 Jadwal mengikuti kota yang dipilih, dalam zona waktu setempat. Untuk kepastian, ikuti jadwal masjid terdekat.
             </p>
+
+            {/* Modal tambah / ubah pengingat */}
+            {(addingAlarm || editingId !== null) && (() => {
+                const isEdit = editingId !== null;
+                const name = isEdit ? editName : newAlarmName;
+                const time = isEdit ? editTime : newAlarmTime;
+                const setName = isEdit ? setEditName : setNewAlarmName;
+                const setTime = isEdit ? setEditTime : setNewAlarmTime;
+                const close = () => (isEdit ? cancelEditing() : setAddingAlarm(false));
+                const submit = async () => {
+                    if (!name.trim() || !time) return;
+                    if (isEdit) await saveEdit();
+                    else {
+                        await addCustomAlarm();
+                        setAddingAlarm(false);
+                    }
+                };
+                const presets = [
+                    { name: "Tahajud", time: "03:00" },
+                    { name: "Dhuha", time: "08:00" },
+                    { name: "Witir", time: "21:00" },
+                ];
+                return (
+                    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[16vh]" role="dialog" aria-modal="true" aria-label={isEdit ? "Ubah pengingat" : "Tambah pengingat"}>
+                        <button aria-label="Tutup" className="absolute inset-0 bg-black/55" onClick={close} />
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                submit();
+                            }}
+                            className="relative w-full max-w-sm rounded-2xl bg-white border border-slate-200 p-5 shadow-2xl animate-fade-in"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="font-semibold text-lg text-slate-900">{isEdit ? "Ubah pengingat" : "Tambah pengingat"}</h2>
+                                <button type="button" onClick={close} aria-label="Tutup" className="p-2 -mr-2 text-slate-500">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {!isEdit && (
+                                <div className="flex gap-2 mb-4">
+                                    {presets.map((ps) => (
+                                        <button
+                                            key={ps.name}
+                                            type="button"
+                                            onClick={() => {
+                                                setName(ps.name);
+                                                setTime(ps.time);
+                                            }}
+                                            className={`h-8 px-3 rounded-full border text-xs font-medium ${name === ps.name ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-600"}`}
+                                        >
+                                            {ps.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            <label className="block text-xs font-medium text-slate-500 mb-1.5">Nama</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Misalnya Tahajud"
+                                maxLength={30}
+                                className="w-full h-11 px-3.5 mb-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 outline-none focus:border-emerald-500 placeholder:text-slate-400"
+                            />
+
+                            <label className="block text-xs font-medium text-slate-500 mb-1.5">Jam</label>
+                            <input
+                                type="time"
+                                value={time}
+                                onChange={(e) => setTime(e.target.value)}
+                                className="w-full h-11 px-3.5 mb-5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-lg tabular-nums outline-none focus:border-emerald-500"
+                            />
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <button type="button" onClick={close} className="h-11 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600">
+                                    Batal
+                                </button>
+                                <button type="submit" disabled={!name.trim() || !time} className="h-11 rounded-xl bg-emerald-500 text-white text-sm font-semibold disabled:opacity-40">
+                                    Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                );
+            })()}
 
             {/* Pilih kota (bottom sheet) */}
             {cityPickerOpen && (

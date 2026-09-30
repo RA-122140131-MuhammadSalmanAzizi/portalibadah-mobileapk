@@ -167,7 +167,7 @@ function MushafSlide({
                             onLoaded(page);
                         }}
                         onError={() => onFailed(page, source)}
-                        className="max-h-full max-w-full w-auto h-auto object-contain"
+                        className={`max-h-full max-w-full w-auto h-auto object-contain transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
                         style={imageStyle}
                     />}
                 </TransformComponent>
@@ -538,8 +538,11 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                 onTouchEnd={onTouchEnd}
             >
                 {showSpinner && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                        <LogoLoader size={56} label="Memuat halaman" />
+                    <div className="absolute inset-0 z-10 flex items-start justify-center pt-[30vh] pointer-events-none">
+                        <LogoLoader
+                            size={56}
+                            label={typeof navigator !== "undefined" && !navigator.onLine ? "Halaman ini belum tersimpan untuk offline" : "Memuat halaman..."}
+                        />
                     </div>
                 )}
                 <div className="relative h-full overflow-hidden">

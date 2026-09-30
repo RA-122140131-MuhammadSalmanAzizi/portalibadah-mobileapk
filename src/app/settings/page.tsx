@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Camera, Image, BellRing, Smartphone, Trash2, ChevronRight, ChevronDown, Moon, Sun, BookOpen, Info, Check, HandHeart } from "lucide-react";
 import { APP_THEMES, AppTheme, applyAppTheme, getAppTheme } from "@/lib/theme";
+import OfflineSettings from "@/components/OfflineSettings";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -242,6 +243,9 @@ export default function SettingsPage() {
                     </div>
                 </section>
 
+                {/* Offline: simpan Al-Qur'an ke perangkat */}
+                <OfflineSettings />
+
                 {/* 4. Tentang & unduhan (sebelumnya ada di menu samping) */}
                 <section>
                     <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Lainnya</h2>
@@ -316,7 +320,7 @@ export default function SettingsPage() {
                 </section>
 
                 <div className="text-center pt-8 pb-4">
-                    <p className="text-xs text-slate-400">Portal Ibadah v1.1.3</p>
+                    <p className="text-xs text-slate-400">Portal Ibadah v1.5</p>
                 </div>
 
             </div>

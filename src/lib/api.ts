@@ -190,21 +190,23 @@ export async function getAllCities(): Promise<City[]> {
         const response = await fetch(`${API_URLS.SHOLAT}/kota/semua`, {
             next: { revalidate: 86400 },
         });
-
-        if (!response.ok) {
-            console.warn("API Error, using fallback cities");
-            return require('./constants').FALLBACK_CITIES;
-        }
-
+        if (!response.ok) throw new Error("API error");
         const data = await response.json();
-        // If data.data is empty or not array, return fallback
-        if (!Array.isArray(data.data) || data.data.length === 0) {
-            return require('./constants').FALLBACK_CITIES;
+        if (!Array.isArray(data.data) || data.data.length === 0) throw new Error("Empty");
+        if (canStore()) {
+            try {
+                localStorage.setItem("cities-cache", JSON.stringify(data.data));
+            } catch { }
         }
-
         return data.data;
     } catch (error) {
-        console.error("Error fetching cities, using fallback:", error);
+        console.error("Error fetching cities, using saved or fallback list:", error);
+        if (canStore()) {
+            try {
+                const saved = localStorage.getItem("cities-cache");
+                if (saved) return JSON.parse(saved);
+            } catch { }
+        }
         return require('./constants').FALLBACK_CITIES;
     }
 }
@@ -248,16 +250,69 @@ export async function searchCities(query: string): Promise<City[]> {
 }
 
 // Fetch prayer times by city ID and date
-export async function getPrayerTimes(cityId: string, date: string): Promise<PrayerTimes | null> {
+// ---- Jadwal sholat: disimpan per bulan di perangkat agar tetap tersedia saat offline ----
+
+const canStore = () => typeof window !== "undefined" && typeof localStorage !== "undefined";
+const monthKey = (cityId: string, year: string, month: string) => `jadwal:${cityId}:${year}-${month}`;
+
+function readMonth(cityId: string, year: string, month: string): Record<string, PrayerTimes> | null {
+    if (!canStore()) return null;
     try {
-        const response = await fetch(`${API_URLS.SHOLAT}/jadwal/${cityId}/${date}`, {
-            next: { revalidate: 3600 }, // Cache for 1 hour
+        const raw = localStorage.getItem(monthKey(cityId, year, month));
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+// Ambil jadwal satu bulan (satu permintaan) lalu simpan, dengan kunci tanggal "YYYY-MM-DD"
+async function fetchMonth(cityId: string, year: string, month: string): Promise<Record<string, PrayerTimes> | null> {
+    try {
+        const res = await fetch(`${API_URLS.SHOLAT}/jadwal/${cityId}/${year}/${month}`);
+        if (!res.ok) throw new Error("Failed to fetch monthly prayer times");
+        const data = await res.json();
+        const list: (PrayerTimes & { date?: string })[] = data.data?.jadwal || [];
+        if (!list.length) return null;
+        const byDate: Record<string, PrayerTimes> = {};
+        list.forEach((d) => {
+            if (d.date) byDate[d.date] = d;
         });
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch prayer times");
+        if (canStore()) {
+            try {
+                localStorage.setItem(monthKey(cityId, year, month), JSON.stringify(byDate));
+            } catch { }
         }
+        return byDate;
+    } catch (error) {
+        console.error("Error fetching monthly prayer times:", error);
+        return null;
+    }
+}
 
+export async function getPrayerTimes(cityId: string, date: string): Promise<PrayerTimes | null> {
+    // date berformat "YYYY/MM/DD" (lihat formatDateForAPI)
+    const [year, month, day] = date.split("/");
+    const iso = `${year}-${month}-${day}`;
+
+    const cached = readMonth(cityId, year, month)?.[iso];
+    if (cached) {
+        // Siapkan bulan berikutnya menjelang akhir bulan (untuk offline)
+        if (Number(day) >= 24 && typeof navigator !== "undefined" && navigator.onLine) {
+            const next = new Date(Number(year), Number(month), 1);
+            const ny = String(next.getFullYear());
+            const nm = String(next.getMonth() + 1).padStart(2, "0");
+            if (!readMonth(cityId, ny, nm)) fetchMonth(cityId, ny, nm);
+        }
+        return cached;
+    }
+
+    const monthData = await fetchMonth(cityId, year, month);
+    if (monthData?.[iso]) return monthData[iso];
+
+    // Cadangan: jadwal harian
+    try {
+        const response = await fetch(`${API_URLS.SHOLAT}/jadwal/${cityId}/${date}`);
+        if (!response.ok) throw new Error("Failed to fetch prayer times");
         const data = await response.json();
         return data.data?.jadwal || null;
     } catch (error) {

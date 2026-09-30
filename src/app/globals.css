@@ -136,6 +136,26 @@
     line-height: 1.6;
   }
 
+  /* Rasa aplikasi native: teks tidak bisa disorot/dipilih dan tidak ada kilatan saat disentuh.
+     Kolom isian tetap bisa diketik dan dipilih. Menyalin ayat/doa lewat tombol Salin. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
   /* Elemen yang punya data-theme sendiri ikut memakai warna teks temanya */
   [data-theme] {
     color: rgb(var(--n-900));
