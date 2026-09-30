@@ -124,3 +124,21 @@ export function getJuzByPage(page: number): number {
     // For now, let's stick to this or better yet, if we want strict accuracy, we use the API response 'juz_number' which we have in getQuranPageData.
     // But for the grid view, this approximation is commonly used, or we could add a `juz_start_page` map.
 }
+
+// Mode baca yang terakhir dipilih: per ayat (teks) atau per halaman (mushaf)
+export type ReadMode = "ayat" | "page";
+export const READ_MODE_KEY = "quran-read-mode";
+
+export function getReadMode(): ReadMode {
+    try {
+        return localStorage.getItem(READ_MODE_KEY) === "page" ? "page" : "ayat";
+    } catch {
+        return "ayat";
+    }
+}
+
+export function setReadMode(mode: ReadMode) {
+    try {
+        localStorage.setItem(READ_MODE_KEY, mode);
+    } catch { }
+}

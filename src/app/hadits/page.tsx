@@ -113,8 +113,8 @@ export default function HaditsPage() {
     return (
         <div className="min-h-screen bg-slate-50">
              {/* Hero Section (Mirip Doa) */}
-             <section className="relative overflow-hidden bg-white">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-700" />
+             <section data-theme="light" className="relative overflow-hidden bg-white">
+                <div className="absolute inset-0 bg-gradient-doa" />
                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
                 
                 <div className="container-app relative z-10 py-8 lg:py-12">
@@ -265,7 +265,7 @@ export default function HaditsPage() {
                          {/* Empty State */}
                          {filteredHadiths.length === 0 && (
                             <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 border-dashed">
-                                <div className="w-16 h-16 mx-auto mb-4 bg-slate-50 rounded-full flex items-center justify-center">
+                                <div className="mx-auto mb-4 flex items-center justify-center">
                                     <Search className="w-8 h-8 text-slate-400" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 mb-1">

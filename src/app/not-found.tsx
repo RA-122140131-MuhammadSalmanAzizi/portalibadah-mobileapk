@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowLeft, Moon } from "lucide-react";
 
 export default function NotFound() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white p-4">
+        <div className="min-h-screen flex items-center justify-center bg-white p-4">
             <div className="text-center max-w-md">
                 {/* Illustration */}
                 <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center">
-                    <span className="text-6xl">🕌</span>
+                    <Moon className="w-14 h-14 text-emerald-600" />
                 </div>
 
                 {/* Content */}

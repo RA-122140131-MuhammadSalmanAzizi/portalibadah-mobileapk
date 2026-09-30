@@ -41,7 +41,7 @@ export default function AppUpdater() {
                 // Logic: Hanya update jika Server > Current
                 if (isNewer(serverData.version, CURRENT_VERSION)) {
                     const { value } = await Dialog.confirm({
-                        title: 'Update Tersedia 🚀',
+                        title: 'Update Tersedia',
                         message: `Versi baru v${serverData.version} tersedia. Update sekarang?`,
                         okButtonTitle: 'Ya, Update',
                         cancelButtonTitle: 'Nanti'

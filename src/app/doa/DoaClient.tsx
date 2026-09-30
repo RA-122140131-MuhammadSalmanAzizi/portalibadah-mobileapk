@@ -114,7 +114,7 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
     return (
         <div className="min-h-screen bg-white">
             {/* Hero Section */}
-            <section className="relative overflow-hidden">
+            <section data-theme="light" className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-doa" />
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
 
@@ -175,12 +175,12 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
                                 : "bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600"
                                 }`}
                         >
-                            ❤️ Favorit ({favorites.length})
+                            <Heart className="w-4 h-4 inline -mt-0.5 mr-1 fill-current" />Favorit ({favorites.length})
                         </button>
                         {searchQuery && (
                             <button
                                 onClick={() => handleSearch("")}
-                                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium"
+                                className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium"
                             >
                                 Reset
                             </button>
@@ -222,8 +222,8 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
                                 className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
                             >
                                 <div className="flex items-center gap-3 sm:gap-4">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shrink-0 shadow-lg">
-                                        <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                    <div className="w-7 flex items-center justify-center shrink-0">
+                                        <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-sm sm:text-base">{doa.doa}</h3>
@@ -330,7 +330,7 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
                 {/* Empty State */}
                 {filteredDoas.length === 0 && (
                     <div className="text-center py-20">
-                        <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
+                        <div className="mx-auto mb-4 flex items-center justify-center">
                             <Search className="w-10 h-10 text-slate-400" />
                         </div>
                         <h3 className="text-xl font-semibold text-slate-900 mb-2">

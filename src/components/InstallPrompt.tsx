@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Download, Smartphone, Monitor, Apple, Share } from 'lucide-react';
+import LogoMark from '@/components/LogoMark';
 
 type Platform = 'ios' | 'android' | 'desktop' | 'unknown';
 
@@ -106,9 +107,7 @@ export default function InstallPrompt() {
                         <X size={20} />
                     </button>
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-3xl">🕌</span>
-                        </div>
+                        <LogoMark className="w-12 h-12 bg-white" label="" />
                         <div>
                             <h2 className="text-xl font-bold">Install Portal Ibadah</h2>
                             <p className="text-white/80 text-sm">Akses lebih cepat dari layar utama</p>

@@ -5,6 +5,110 @@
 @tailwind utilities;
 
 /* ==========================================
+   THEME TOKENS
+   Nilai berupa "R G B" agar bisa dipakai dengan opacity Tailwind (bg-slate-900/50).
+   Skala netral dibalik pada tema gelap: angka kecil = permukaan, angka besar = teks.
+   Default aplikasi = Gelap. Atribut data-theme bisa dipasang di elemen mana pun
+   (mis. pembaca Al-Qur'an) untuk menimpa tema di bagian itu saja.
+   ========================================== */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: 19 17 15;
+  --n-50: 27 24 21;
+  --n-100: 36 32 28;
+  --n-200: 51 46 41;
+  --n-300: 72 65 58;
+  --n-400: 117 108 98;
+  --n-500: 150 140 129;
+  --n-600: 180 171 160;
+  --n-700: 206 198 188;
+  --n-800: 224 218 210;
+  --n-900: 237 233 227;
+  --n-950: 246 243 239;
+
+  --a-50: 38 29 22;
+  --a-100: 52 38 27;
+  --a-200: 74 53 36;
+  --a-300: 107 76 49;
+  --a-400: 160 116 74;
+  --a-500: 193 145 98;
+  --a-600: 176 128 83;
+  --a-700: 221 184 145;
+  --a-800: 234 207 177;
+  --a-900: 245 228 208;
+  --a-950: 250 240 228;
+}
+
+[data-theme="sepia"] {
+  color-scheme: light;
+  --surface: 244 236 218;
+  --n-50: 237 227 205;
+  --n-100: 229 217 192;
+  --n-200: 214 199 170;
+  --n-300: 190 173 142;
+  --n-400: 150 133 105;
+  --n-500: 118 103 80;
+  --n-600: 93 80 61;
+  --n-700: 74 63 48;
+  --n-800: 56 47 36;
+  --n-900: 43 36 27;
+  --n-950: 30 25 19;
+
+  --a-50: 236 222 200;
+  --a-100: 226 205 176;
+  --a-200: 207 176 138;
+  --a-300: 178 138 95;
+  --a-400: 146 100 60;
+  --a-500: 122 80 45;
+  --a-600: 104 67 37;
+  --a-700: 88 56 31;
+  --a-800: 70 44 24;
+  --a-900: 55 35 19;
+  --a-950: 38 24 13;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --surface: 248 246 240;
+  --n-50: 241 238 231;
+  --n-100: 233 229 220;
+  --n-200: 219 213 202;
+  --n-300: 196 189 176;
+  --n-400: 150 144 132;
+  --n-500: 115 110 100;
+  --n-600: 87 83 76;
+  --n-700: 64 61 56;
+  --n-800: 44 42 38;
+  --n-900: 30 29 26;
+  --n-950: 18 17 15;
+
+  --a-50: 244 236 225;
+  --a-100: 234 219 199;
+  --a-200: 215 189 156;
+  --a-300: 186 146 105;
+  --a-400: 155 110 68;
+  --a-500: 128 84 47;
+  --a-600: 110 71 39;
+  --a-700: 92 59 33;
+  --a-800: 74 47 26;
+  --a-900: 58 37 20;
+  --a-950: 40 25 14;
+}
+
+/* Tinggi navigasi bawah & mini player (diatur oleh BottomNav / MiniPlayer) */
+:root {
+  --nav-h: 0px;
+  --player-h: 0px;
+}
+
+@media (max-width: 767px) {
+  html[data-bottomnav="on"] {
+    --nav-h: 64px;
+  }
+}
+
+/* ==========================================
    BASE LAYER - Modern Clean Design
    ========================================== */
 @layer base {
@@ -21,6 +125,11 @@
     font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     @apply bg-white text-slate-900 antialiased;
     line-height: 1.6;
+  }
+
+  /* Elemen yang punya data-theme sendiri ikut memakai warna teks temanya */
+  [data-theme] {
+    color: rgb(var(--n-900));
   }
 }
 
@@ -389,25 +498,23 @@ nextjs-portal,
     radial-gradient(at 0% 50%, rgba(255, 192, 203, 0.1) 0px, transparent 50%),
     radial-gradient(at 80% 50%, rgba(186, 230, 253, 0.15) 0px, transparent 50%),
     radial-gradient(at 0% 100%, rgba(167, 243, 208, 0.1) 0px, transparent 50%),
-    white;
+    rgb(var(--surface));
 }
 
-/* Quran specific gradient - Monochrome */
+/* Hero gradients - coklat tua, dipakai bersama data-theme="light" pada hero
+   agar teks putih di atasnya tetap terang di semua tema */
 .bg-gradient-quran {
-  background: linear-gradient(135deg, #171717 0%, #262626 50%, #404040 100%);
+  background: linear-gradient(135deg, #2b1d13 0%, #3d2a1c 55%, #523826 100%);
 }
 
-/* Sholat specific gradient - Monochrome */
 .bg-gradient-sholat {
-  background: linear-gradient(135deg, #0a0a0a 0%, #171717 50%, #262626 100%);
+  background: linear-gradient(135deg, #1f1712 0%, #2e2219 50%, #3b2c20 100%);
 }
 
-/* Doa specific gradient - Monochrome */
 .bg-gradient-doa {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #4b5563 100%);
+  background: linear-gradient(135deg, #1e1a17 0%, #2b2520 50%, #3a312a 100%);
 }
 
-/* Neutral gradient */
 .bg-gradient-neutral {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+  background: linear-gradient(135deg, #1e1a17 0%, #2b2520 50%, #3a312a 100%);
 }

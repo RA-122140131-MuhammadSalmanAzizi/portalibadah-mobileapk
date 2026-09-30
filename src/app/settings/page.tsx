@@ -1,13 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Image, BellRing, Smartphone, ShieldAlert, Trash2, ChevronRight, Moon, Sun, Monitor } from "lucide-react";
+import { ArrowLeft, Camera, Image, BellRing, Smartphone, Trash2, ChevronRight, ChevronDown, Moon, Sun, BookOpen, Info, Check, HandHeart } from "lucide-react";
+import { APP_THEMES, AppTheme, applyAppTheme, getAppTheme } from "@/lib/theme";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
     const router = useRouter();
     const [fullScreenAlarm, setFullScreenAlarm] = useState(false);
+    const [appTheme, setAppTheme] = useState<AppTheme>("dark");
+    const [showDonation, setShowDonation] = useState(false);
+
+    useEffect(() => {
+        setAppTheme(getAppTheme());
+    }, []);
+
+    const chooseTheme = (theme: AppTheme) => {
+        setAppTheme(theme);
+        applyAppTheme(theme);
+    };
+
+    const themeIcon = { dark: Moon, sepia: BookOpen, light: Sun };
 
     // --- FITUR OVERLAY (Justifikasi Izin SYSTEM_ALERT_WINDOW) ---
     const handleToggleOverlay = async () => {
@@ -30,6 +44,35 @@ export default function SettingsPage() {
             </div>
 
             <div className="container-app py-6 space-y-6">
+
+                {/* 0. Tema aplikasi */}
+                <section>
+                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Tema Aplikasi</h2>
+                    <div role="radiogroup" aria-label="Tema aplikasi" className="grid grid-cols-3 gap-2">
+                        {APP_THEMES.map(({ id, label }) => {
+                            const Icon = themeIcon[id];
+                            const active = appTheme === id;
+                            return (
+                                <button
+                                    key={id}
+                                    role="radio"
+                                    aria-checked={active}
+                                    onClick={() => chooseTheme(id)}
+                                    data-theme={id}
+                                    className={`relative flex flex-col items-center gap-2 py-4 rounded-2xl border-2 bg-white transition-colors ${active ? 'border-emerald-500' : 'border-slate-200'}`}
+                                >
+                                    <Icon className="w-5 h-5 text-slate-700" />
+                                    <span className="text-sm font-medium text-slate-900">{label}</span>
+                                    {active && (
+                                        <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                            <Check className="w-3 h-3" strokeWidth={3} />
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
 
                 {/* 1. Kustomisasi (Permission: Camera & Storage) */}
                 <section>
@@ -64,7 +107,7 @@ export default function SettingsPage() {
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <Camera className="w-5 h-5" />
                                 </div>
                                 <div className="text-left">
@@ -97,7 +140,7 @@ export default function SettingsPage() {
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <Image className="w-5 h-5" />
                                 </div>
                                 <div className="text-left">
@@ -119,7 +162,7 @@ export default function SettingsPage() {
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <Trash2 className="w-5 h-5" />
                                 </div>
                                 <div className="text-left">
@@ -138,7 +181,7 @@ export default function SettingsPage() {
 
                         <div className="flex items-center justify-between p-4 border-b border-slate-50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <BellRing className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -154,7 +197,7 @@ export default function SettingsPage() {
 
                         <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer" onClick={handleToggleOverlay}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <Smartphone className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -186,7 +229,7 @@ export default function SettingsPage() {
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
                                     <Trash2 className="w-5 h-5" />
                                 </div>
                                 <div className="text-left">
@@ -196,6 +239,79 @@ export default function SettingsPage() {
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-300" />
                         </button>
+                    </div>
+                </section>
+
+                {/* 4. Tentang & unduhan (sebelumnya ada di menu samping) */}
+                <section>
+                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Lainnya</h2>
+                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <Link href="/about" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
+                                    <Info className="w-5 h-5" />
+                                </div>
+                                <p className="font-medium text-slate-900">Tentang Aplikasi</p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-300" />
+                        </Link>
+                        <a
+                            href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
+                                    <Smartphone className="w-5 h-5" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-slate-900">Download APK Terbaru</p>
+                                    <p className="text-xs text-slate-500">Halaman rilis di GitHub</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-300" />
+                        </a>
+                    </div>
+                </section>
+
+                {/* 5. Sedekah (dipindah dari pop-up navbar, tertutup secara default) */}
+                <section>
+                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Dukung Aplikasi</h2>
+                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <button
+                            onClick={() => setShowDonation((v) => !v)}
+                            aria-expanded={showDonation}
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 flex items-center justify-center text-slate-500">
+                                    <HandHeart className="w-5 h-5" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-slate-900">Sedekah untuk Pengembang</p>
+                                    <p className="text-xs text-slate-500">Aplikasi ini gratis dan tanpa iklan</p>
+                                </div>
+                            </div>
+                            <ChevronDown className={`w-5 h-5 text-slate-300 transition-transform ${showDonation ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showDonation && (
+                            <div className="px-4 pb-5 pt-1 flex flex-col items-center text-center gap-3 border-t border-slate-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/qr.jpeg" alt="QRIS sedekah" className="w-56 h-56 object-contain rounded-xl bg-white mt-3" />
+                                <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                                    Sisihkan sedikit rezeki untuk membantu pengembangan Portal Ibadah. Terima kasih atas dukungannya.
+                                </p>
+                                <a
+                                    href="https://link.dana.id/minta?full_url=https://qr.dana.id/v1/281012012024100543167079"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center h-11 px-6 rounded-full bg-emerald-500 text-white text-sm font-semibold"
+                                >
+                                    Sedekah via DANA
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </section>
 

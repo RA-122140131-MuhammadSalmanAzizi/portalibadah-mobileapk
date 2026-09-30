@@ -20,6 +20,7 @@ import {
     Pencil,
     X,
     Mic,
+    Info,
 } from "lucide-react";
 import {
     City,
@@ -427,7 +428,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
     return (
         <div className="min-h-screen bg-white">
             {/* Hero Section - Purple/Indigo theme for Sholat */}
-            <section className="relative">
+            <section data-theme="light" className="relative">
                 {/* Background Container - overflow hidden for blobs */}
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-sholat" />
@@ -469,8 +470,8 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                     className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
-                                            <MapPin className="w-5 h-5 text-white" />
+                                        <div className="w-8 flex items-center justify-center shrink-0">
+                                            <MapPin className="w-6 h-6 text-emerald-600" />
                                         </div>
                                         <div className="text-left overflow-hidden">
                                             <p className="text-xs text-slate-400 font-medium">Lokasi Anda</p>
@@ -721,8 +722,8 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                                     </div>
 
                                     {/* Icon */}
-                                    <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${prayer.gradient} flex items-center justify-center mb-3 sm:mb-4 shadow-lg`}>
-                                        <Icon className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+                                    <div className="flex items-center mb-3 sm:mb-4">
+                                        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
                                     </div>
 
                                     {/* Prayer Name */}
@@ -740,7 +741,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                     </div>
                 ) : (
                     <div className="text-center py-20 bg-slate-50 rounded-3xl">
-                        <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
+                        <div className="mx-auto mb-4 flex items-center justify-center">
                             <Clock className="w-10 h-10 text-slate-400" />
                         </div>
                         <h3 className="text-xl font-semibold text-slate-900 mb-2">
@@ -865,8 +866,9 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
             {/* Info Section */}
             <section className="container-app pb-16">
                 <div className="bg-slate-50 rounded-3xl p-8 lg:p-10">
-                    <h3 className="font-bold text-slate-900 mb-6 text-lg">
-                        ℹ️ Informasi Penting
+                    <h3 className="font-bold text-slate-900 mb-6 text-lg flex items-center gap-2">
+                        <Info className="w-5 h-5 text-emerald-600" />
+                        Informasi Penting
                     </h3>
                     <ul className="space-y-4 text-slate-600">
                         <li className="flex items-start gap-3">

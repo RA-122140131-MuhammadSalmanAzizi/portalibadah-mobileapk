@@ -44,7 +44,7 @@ export default function AboutPage() {
 
                     <Link
                         href="/documentation"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors shadow-sm"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-xl hover:bg-emerald-600 transition-colors shadow-sm"
                     >
                         <span>Documentation</span>
                         <Info className="w-4 h-4 ml-1" />

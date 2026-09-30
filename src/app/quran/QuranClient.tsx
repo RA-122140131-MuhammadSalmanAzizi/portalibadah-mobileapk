@@ -2,552 +2,310 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Search, BookOpen, ChevronRight, MapPin, Book, Layers, ChevronLeft, Clock, ArrowRight, Bookmark, Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search, ChevronRight, BookOpen, Bookmark, Clock, Trash2, X } from "lucide-react";
 import { Surah } from "@/lib/api";
-import { getSurahsByPage, getJuzByPage } from "@/lib/quran-data";
+import { getSurahsByPage, getReadMode, ReadMode } from "@/lib/quran-data";
+import { JUZ_STARTS, formatRevelation } from "@/lib/juz";
+import AyahNumber from "@/components/AyahNumber";
 
 interface QuranClientProps {
     initialSurahs: Surah[];
 }
 
-type ViewMode = "surah" | "page";
+type Tab = "surah" | "juz" | "page" | "saved";
+type SavedItem = { type: string; id: number; name: string; date: number; ayat?: number };
 
-const SURAHS_PER_PAGE = 20;
-const PAGES_PER_VIEW = 50;
+// Placeholder kolom cari mengikuti tab aktif
+const SEARCH_HINT: Record<Tab, string> = {
+    surah: "Cari surah, arti, atau nomor...",
+    juz: "Cari juz (1-30) atau nama surah...",
+    page: "Ketik nomor halaman (1-604)...",
+    saved: "Cari di bookmark...",
+};
+
+const TABS: { id: Tab; label: string }[] = [
+    { id: "surah", label: "Surah" },
+    { id: "juz", label: "Juz" },
+    { id: "page", label: "Halaman" },
+    { id: "saved", label: "Tersimpan" },
+];
+
+const TOTAL_PAGES = 604;
+
+function itemHref(item: { type: string; id: number; ayat?: number }) {
+    return item.type === "surah"
+        ? `/quran/${item.id}${item.ayat ? `#ayat-${item.ayat}` : ""}`
+        : `/quran/page/${item.id}`;
+}
 
 export default function QuranClient({ initialSurahs }: QuranClientProps) {
-    const [searchQuery, setSearchQuery] = useState("");
-    const [viewMode, setViewMode] = useState<ViewMode>("surah");
-    const [currentSurahPage, setCurrentSurahPage] = useState(1);
-    const [currentPageGroup, setCurrentPageGroup] = useState(0);
-    const [windowStart, setWindowStart] = useState(0); // Track which tabs are visible (0-indexed)
-    const [lastRead, setLastRead] = useState<{ type: string; id: number; name: string } | null>(null);
-    const [bookmarks, setBookmarks] = useState<{ type: string; id: number; name: string; date: number }[]>([]);
-
+    const router = useRouter();
     const searchParams = useSearchParams();
+    const [tab, setTab] = useState<Tab>("surah");
+    const [query, setQuery] = useState("");
+    const [readMode, setReadModeState] = useState<ReadMode>("ayat");
+    const [lastRead, setLastRead] = useState<SavedItem | null>(null);
+    const [bookmarks, setBookmarks] = useState<SavedItem[]>([]);
 
     useEffect(() => {
-        // Load View Mode from Query
-        const viewParam = searchParams.get('view');
-        if (viewParam === 'page') {
-            setViewMode('page');
-        }
-
-        // Load Last Read
+        const view = searchParams.get("view");
+        if (view === "page" || view === "juz" || view === "saved") setTab(view);
         const savedRead = localStorage.getItem("last-read");
-        if (savedRead) {
-            setLastRead(JSON.parse(savedRead));
-        }
-
-        // Load Bookmarks
+        if (savedRead) setLastRead(JSON.parse(savedRead));
         const savedBookmarks = localStorage.getItem("quran-bookmarks");
-        if (savedBookmarks) {
-            setBookmarks(JSON.parse(savedBookmarks));
-        }
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+        setReadModeState(getReadMode());
     }, [searchParams]);
 
-    const removeBookmark = (date: number) => {
-        const newBookmarks = bookmarks.filter(b => b.date !== date);
-        setBookmarks(newBookmarks);
-        localStorage.setItem("quran-bookmarks", JSON.stringify(newBookmarks));
-    };
+    const surahById = useMemo(() => new Map(initialSurahs.map((s) => [s.nomor, s])), [initialSurahs]);
 
     const filteredSurahs = useMemo(() => {
-        if (!searchQuery.trim()) return initialSurahs;
-
-        const normalizeText = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const query = normalizeText(searchQuery);
-
+        const q = query.trim();
+        if (!q) return initialSurahs;
+        const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const nq = norm(q);
         return initialSurahs.filter(
-            (surah) =>
-                normalizeText(surah.namaLatin).includes(query) ||
-                normalizeText(surah.arti).includes(query) ||
-                surah.nomor.toString().includes(searchQuery) // Keep number search strict/numeric
+            (s) => norm(s.namaLatin).includes(nq) || norm(s.arti).includes(nq) || s.nomor.toString() === q
         );
-    }, [initialSurahs, searchQuery]);
+    }, [initialSurahs, query]);
 
-    // Pagination for Surah
-    const totalSurahPages = Math.ceil(filteredSurahs.length / SURAHS_PER_PAGE);
-    const paginatedSurahs = useMemo(() => {
-        const start = (currentSurahPage - 1) * SURAHS_PER_PAGE;
-        const end = start + SURAHS_PER_PAGE;
-        return filteredSurahs.slice(start, end);
-    }, [filteredSurahs, currentSurahPage]);
+    const removeBookmark = (date: number) => {
+        const next = bookmarks.filter((b) => b.date !== date);
+        setBookmarks(next);
+        localStorage.setItem("quran-bookmarks", JSON.stringify(next));
+    };
 
-    // Calculate page groups for Mushaf view
-    const totalPages = 604;
-    const totalPageGroups = Math.ceil(totalPages / PAGES_PER_VIEW);
+    const searching = query.trim().length > 0;
+    const activeTab = tab;
+    const q = query.trim().toLowerCase();
 
-    const displayedPages = useMemo(() => {
-        const start = currentPageGroup * PAGES_PER_VIEW + 1;
-        const end = Math.min((currentPageGroup + 1) * PAGES_PER_VIEW, totalPages);
-
-        if (searchQuery.trim() && viewMode === "page") {
-            return Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(page => page.toString().includes(searchQuery));
+    // Enter di tab Halaman langsung membuka halaman tersebut
+    const onSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (tab === "page") {
+            const n = Number(q);
+            if (n >= 1 && n <= TOTAL_PAGES) router.push(`/quran/page/${n}`);
         }
-
-        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    }, [currentPageGroup, searchQuery, viewMode]);
-
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        setCurrentSurahPage(1);
-        setCurrentPageGroup(0);
+        (document.activeElement as HTMLElement | null)?.blur();
     };
 
-    const handlePageGroupChange = (group: number) => {
-        setCurrentPageGroup(group);
-        setSearchQuery("");
-    };
+    // Buka surah/juz sesuai mode baca terakhir (per ayat atau per halaman)
+    const surahHref = (s: Surah) => (readMode === "page" && s.startPage ? `/quran/page/${s.startPage}` : `/quran/${s.nomor}`);
 
-    const handleSurahPageChange = (page: number) => {
-        setCurrentSurahPage(page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    const filteredJuz = useMemo(
+        () =>
+            !q
+                ? JUZ_STARTS
+                : JUZ_STARTS.filter((j) => String(j.juz) === q || (surahById.get(j.surah)?.namaLatin.toLowerCase().includes(q) ?? false)),
+        [q, surahById]
+    );
 
-    const getSurahPageNumbers = () => {
-        const pages: (number | string)[] = [];
-        if (totalSurahPages <= 6) {
-            for (let i = 1; i <= totalSurahPages; i++) pages.push(i);
-        } else {
-            if (currentSurahPage <= 3) {
-                for (let i = 1; i <= 4; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalSurahPages);
-            } else if (currentSurahPage >= totalSurahPages - 2) {
-                pages.push(1);
-                pages.push('...');
-                for (let i = totalSurahPages - 3; i <= totalSurahPages; i++) pages.push(i);
-            } else {
-                pages.push(1);
-                pages.push('...');
-                for (let i = currentSurahPage - 1; i <= currentSurahPage + 1; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalSurahPages);
-            }
-        }
-        return pages;
-    };
+    const pagesByJuz = useMemo(() => {
+        const groups = JUZ_STARTS.map((j, i) => {
+            const end = i < JUZ_STARTS.length - 1 ? JUZ_STARTS[i + 1].page - 1 : TOTAL_PAGES;
+            return { juz: j.juz, pages: Array.from({ length: end - j.page + 1 }, (_, k) => j.page + k) };
+        });
+        if (!q) return groups;
+        return groups
+            .map((g) => ({ ...g, pages: g.pages.filter((p) => String(p).startsWith(q)) }))
+            .filter((g) => g.pages.length > 0);
+    }, [q]);
+
+    const filteredBookmarks = useMemo(
+        () => (!q ? bookmarks : bookmarks.filter((b) => b.name.toLowerCase().includes(q))),
+        [q, bookmarks]
+    );
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Hero Section - Green theme for Quran */}
-            <section className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-quran" />
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-
-                <div className="container-app relative z-10 py-6 lg:py-10">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                        {/* Left Column: Intro */}
-                        <div className="max-w-2xl">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm text-white/90 mb-6">
-                                <BookOpen className="w-4 h-4" />
-                                <span>Al-Qur&apos;an Digital</span>
-                            </div>
-
-                            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
-                                Baca Al-Qur&apos;an
-                            </h1>
-
-                            <p className="text-white/80 text-base sm:text-lg mb-8">
-                                Baca dan pelajari Al-Qur&apos;an dengan teks Arab, transliterasi Latin, dan terjemahan Indonesia.
-                            </p>
-
-                            {/* View Mode Toggle */}
-                            <div className="flex items-center gap-2 mb-6 overscroll-x-contain overflow-x-auto pb-2 scrollbar-hide">
-                                <button
-                                    onClick={() => { setViewMode("surah"); handleSearch(""); }}
-                                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${viewMode === "surah"
-                                        ? "bg-white text-emerald-600 shadow-lg"
-                                        : "bg-white/15 text-white hover:bg-white/25"
-                                        }`}
-                                >
-                                    <Layers className="w-4 h-4" />
-                                    <span>Per Surah</span>
-                                </button>
-                                <button
-                                    onClick={() => { setViewMode("page"); handleSearch(""); setCurrentPageGroup(0); }}
-                                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${viewMode === "page"
-                                        ? "bg-white text-emerald-600 shadow-lg"
-                                        : "bg-white/15 text-white hover:bg-white/25"
-                                        }`}
-                                >
-                                    <Book className="w-4 h-4" />
-                                    <span>Per Halaman</span>
-                                </button>
-                            </div>
-
-                            {/* Search Bar */}
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input
-                                    type="text"
-                                    placeholder={viewMode === "surah" ? "Cari surah..." : "Cari halaman (1-604)..."}
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    className="input-search-quran w-full pl-12"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Right Column: Bookmarks & Last Read */}
-                        <div className="lg:pl-8">
-                            {/* Last Read Card */}
-                            {lastRead && (
-                                <div className="mb-6 animate-fade-in">
-                                    <h3 className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-3">Terakhir Dibaca</h3>
-                                    <Link
-                                        href={lastRead.type === 'surah' ? `/quran/${lastRead.id}` : `/quran/page/${lastRead.id}`}
-                                        className="inline-flex items-center gap-4 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-white/20 transition-all group w-full"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                            <Clock className="w-5 h-5 text-emerald-200" />
-                                        </div>
-                                        <div className="text-left flex-1 min-w-0">
-                                            <p className="text-white font-bold text-lg leading-tight truncate">
-                                                {lastRead.name}
-                                            </p>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all ml-4">
-                                            <ArrowRight className="w-4 h-4" />
-                                        </div>
-                                    </Link>
-                                </div>
-                            )}
-
-                            {/* Bookmarks Section - Vertical List in Right Column */}
-                            {bookmarks.length > 0 && (
-                                <div className="animate-fade-in">
-                                    <h3 className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <Bookmark className="w-4 h-4" />
-                                        Bookmark Tersimpan
-                                    </h3>
-                                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/20">
-                                        {bookmarks.map((bookmark) => (
-                                            <div key={bookmark.date} className="relative group w-full">
-                                                <Link
-                                                    href={bookmark.type === 'surah' ? `/quran/${bookmark.id}` : `/quran/page/${bookmark.id}`}
-                                                    className="flex items-center gap-3 p-3 pr-8 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl backdrop-blur-sm transition-all w-full"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-200 font-bold text-xs shrink-0">
-                                                        {bookmark.type === 'surah' ? 'S' : 'H'}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-white text-sm font-medium truncate">{bookmark.name}</p>
-                                                        <p className="text-white/40 text-[10px]">{new Date(bookmark.date).toLocaleDateString()}</p>
-                                                    </div>
-                                                </Link>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        removeBookmark(bookmark.date);
-                                                    }}
-                                                    className="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 text-white/40 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Content Section */}
-            <section className="container-app py-8 lg:py-14">
-                {/* Stats */}
-                <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
-                    {viewMode === "surah" ? (
-                        <>
-                            <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs sm:text-sm font-medium">
-                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>{filteredSurahs.length} Surah</span>
-                            </div>
-                            {totalSurahPages > 1 && !searchQuery && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-100 text-slate-700 rounded-xl text-xs sm:text-sm font-medium">
-                                    Page {currentSurahPage}/{totalSurahPages}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs sm:text-sm font-medium">
-                                <Book className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>604 Hal</span>
-                            </div>
-                        </>
+        <div className="container-app max-w-2xl pb-8">
+            {/* Judul + pencarian + tab (menempel saat di-scroll) */}
+            <div className="sticky top-16 lg:top-20 z-20 -mx-4 px-4 pt-4 pb-3 bg-white/95 backdrop-blur-lg border-b border-slate-100">
+                <h1 className="text-xl font-bold text-slate-900 mb-3">Al-Qur&apos;an</h1>
+                <form onSubmit={onSearchSubmit}>
+                <label className="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 focus-within:border-emerald-500 transition-colors">
+                    <Search className="w-[18px] h-[18px] text-slate-400 shrink-0" />
+                    <input
+                        type="search"
+                        inputMode={tab === "page" ? "numeric" : "search"}
+                        enterKeyHint={tab === "page" ? "go" : "search"}
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={SEARCH_HINT[tab]}
+                        aria-label={SEARCH_HINT[tab]}
+                        className="flex-1 min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                    {searching && (
+                        <button onClick={() => setQuery("")} aria-label="Hapus pencarian" className="p-1 -mr-1 text-slate-400">
+                            <X className="w-4 h-4" />
+                        </button>
                     )}
+                </label>
+                </form>
+
+                <div role="tablist" aria-label="Tampilan" className="grid grid-cols-4 gap-1 mt-3 p-1 rounded-xl bg-slate-50 border border-slate-100">
+                    {TABS.map((t) => (
+                        <button
+                            key={t.id}
+                            role="tab"
+                            aria-selected={activeTab === t.id}
+                            onClick={() => {
+                                setQuery("");
+                                setTab(t.id);
+                                window.scrollTo({ top: 0 });
+                            }}
+                            className={`h-9 rounded-lg text-sm font-medium transition-colors ${activeTab === t.id ? "bg-emerald-500 text-white shadow-sm" : "text-slate-500"}`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
                 </div>
+            </div>
 
-                {/* Surah View with Pagination */}
-                {viewMode === "surah" && (
-                    <>
-                        {/* Top Navigation for Surah */}
-                        {totalSurahPages > 1 && !searchQuery && (
-                            <div className="flex justify-between items-center mb-6">
-                                <button
-                                    onClick={() => handleSurahPageChange(Math.max(1, currentSurahPage - 1))}
-                                    disabled={currentSurahPage === 1}
-                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Prev</span>
-                                </button>
-                                <span className="text-slate-500 text-sm font-medium">
-                                    Halaman {currentSurahPage} dari {totalSurahPages}
-                                </span>
-                                <button
-                                    onClick={() => handleSurahPageChange(Math.min(totalSurahPages, currentSurahPage + 1))}
-                                    disabled={currentSurahPage === totalSurahPages}
-                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <span className="hidden sm:inline">Next</span>
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                            {paginatedSurahs.map((surah) => (
-                                <Link
-                                    key={surah.nomor}
-                                    href={`/quran/${surah.nomor}`}
-                                    className="group surah-card p-4 sm:p-5"
-                                >
-                                    <div className="surah-number w-10 h-10 sm:w-12 sm:h-12 text-xs sm:text-sm">{surah.nomor}</div>
-
+            {/* ===== SURAH ===== */}
+            {activeTab === "surah" && (
+                <>
+                    {searching && (
+                        <p className="pt-3 text-xs text-slate-500">{filteredSurahs.length} surah ditemukan</p>
+                    )}
+                    <ul className="divide-y divide-slate-100">
+                        {filteredSurahs.map((s) => (
+                            <li key={s.nomor}>
+                                <Link href={surahHref(s)} className="flex items-center gap-3 py-3 active:bg-slate-50">
+                                    <AyahNumber number={s.nomor} size={40} />
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div>
-                                                <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors text-sm sm:text-base">
-                                                    {surah.namaLatin}
-                                                </h3>
-                                                <p className="text-xs sm:text-sm text-slate-500">{surah.arti}</p>
-                                            </div>
-                                            <p className="font-arabic text-lg sm:text-xl text-emerald-600 shrink-0">
-                                                {surah.nama}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 mt-2 text-[10px] sm:text-xs text-slate-400">
-                                            <span className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3" />
-                                                {surah.tempatTurun}
-                                            </span>
-                                            <span>•</span>
-                                            <span>{surah.jumlahAyat} Ayat</span>
-                                        </div>
+                                        <p className="font-semibold text-slate-900 truncate">{s.namaLatin}</p>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {s.jumlahAyat} ayat &middot; {formatRevelation(s.tempatTurun)} &middot; {s.arti}
+                                        </p>
                                     </div>
-
-                                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all shrink-0" />
+                                    <p className="font-arabic text-xl text-emerald-700 shrink-0" style={{ lineHeight: 1.6 }} lang="ar">{s.nama}</p>
+                                    <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
                                 </Link>
-                            ))}
+                            </li>
+                        ))}
+                    </ul>
+                    {filteredSurahs.length === 0 && (
+                        <div className="py-16 text-center">
+                            <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                            <p className="font-medium text-slate-700">Surah tidak ditemukan</p>
+                            <p className="text-sm text-slate-500">Coba kata kunci lain, misalnya &quot;Yasin&quot; atau &quot;36&quot;</p>
                         </div>
+                    )}
+                </>
+            )}
 
-                        {/* Surah Pagination */}
-                        {totalSurahPages > 1 && !searchQuery && (
-                            <div className="flex flex-wrap justify-center items-center gap-2 mt-8 sm:mt-10">
-                                <button
-                                    onClick={() => handleSurahPageChange(Math.max(1, currentSurahPage - 1))}
-                                    disabled={currentSurahPage === 1}
-                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Prev</span>
-                                </button>
+            {/* ===== JUZ ===== */}
+            {activeTab === "juz" && (
+                <ul className="divide-y divide-slate-100">
+                    {filteredJuz.map((j) => {
+                        const s = surahById.get(j.surah);
+                        const href = readMode === "page" ? `/quran/page/${j.page}` : `/quran/${j.surah}#ayat-${j.ayat}`;
+                        return (
+                            <li key={j.juz}>
+                                <Link href={href} className="flex items-center gap-3 py-3 active:bg-slate-50">
+                                    <AyahNumber number={j.juz} size={40} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-slate-900">Juz {j.juz}</p>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            Mulai {s?.namaLatin} ayat {j.ayat} &middot; hal. {j.page}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                                </Link>
+                            </li>
+                        );
+                    })}
+                    {filteredJuz.length === 0 && <li className="py-12 text-center text-sm text-slate-500">Juz tidak ditemukan</li>}
+                </ul>
+            )}
 
-                                <div className="flex flex-wrap justify-center gap-1">
-                                    {getSurahPageNumbers().map((page, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => typeof page === 'number' && handleSurahPageChange(page)}
-                                            disabled={page === '...'}
-                                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl text-xs sm:text-sm font-medium transition-all ${page === currentSurahPage
-                                                ? "bg-emerald-500 text-white shadow-lg"
-                                                : page === '...'
-                                                    ? "text-slate-400 cursor-default"
-                                                    : "bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700"
-                                                }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
-                                </div>
+            {/* ===== HALAMAN (MUSHAF) ===== */}
+            {activeTab === "page" && (
+                <div className="pt-4">
 
-                                <button
-                                    onClick={() => handleSurahPageChange(Math.min(totalSurahPages, currentSurahPage + 1))}
-                                    disabled={currentSurahPage === totalSurahPages}
-                                    className="flex items-center gap-1 px-3 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <span className="hidden sm:inline">Next</span>
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Page/Mushaf View with Pagination */}
-                {viewMode === "page" && (
-                    <>
-                        {/* Pagination Controls - Top */}
-                        {!searchQuery && (
-                            <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
-                                {/* Prev Button */}
-                                <button
-                                    onClick={() => {
-                                        if (currentPageGroup <= 0) return;
-                                        const newPage = currentPageGroup - 1;
-                                        handlePageGroupChange(newPage);
-                                        // If new page is less than window start, slide window left
-                                        if (newPage < windowStart) {
-                                            setWindowStart(newPage);
-                                        }
-                                    }}
-                                    disabled={currentPageGroup === 0}
-                                    className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                </button>
-
-                                {/* 3 Visible Tabs */}
-                                <div className="flex justify-center gap-2">
-                                    {Array.from({ length: Math.min(3, totalPageGroups) }, (_, idx) => {
-                                        const tabIndex = windowStart + idx;
-                                        if (tabIndex >= totalPageGroups) return null;
-                                        return (
-                                            <button
-                                                key={tabIndex}
-                                                onClick={() => handlePageGroupChange(tabIndex)}
-                                                className={`px-3 py-2 rounded-xl text-sm font-medium min-w-[70px] ${currentPageGroup === tabIndex
-                                                    ? "bg-emerald-500 text-white shadow-lg"
-                                                    : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50"
-                                                    }`}
-                                            >
-                                                {tabIndex * PAGES_PER_VIEW + 1}-{Math.min((tabIndex + 1) * PAGES_PER_VIEW, totalPages)}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Next Button */}
-                                <button
-                                    onClick={() => {
-                                        if (currentPageGroup >= totalPageGroups - 1) return;
-                                        const newPage = currentPageGroup + 1;
-                                        handlePageGroupChange(newPage);
-                                        // If new page exceeds the visible window end, slide window right
-                                        const windowEnd = windowStart + 2;
-                                        if (newPage > windowEnd) {
-                                            setWindowStart(windowStart + 1);
-                                        }
-                                    }}
-                                    disabled={currentPageGroup === totalPageGroups - 1}
-                                    className="w-10 h-10 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Page Grid */}
-                        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-2 sm:gap-3">
-                            {displayedPages.map((page) => {
-                                const juz = getJuzByPage(page);
-                                const surahs = getSurahsByPage(page);
-                                const mainSurah = surahs[0]?.name_simple || "";
-
-                                return (
+                    {pagesByJuz.map(({ juz, pages }) => (
+                        <section key={juz} className="mb-5">
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Juz {juz}</h2>
+                            <div className="grid grid-cols-4 gap-2">
+                                {pages.map((p) => (
                                     <Link
-                                        key={page}
-                                        href={`/quran/page/${page}`}
-                                        className="group aspect-[3/4] flex flex-col items-center justify-between bg-white rounded-xl border border-slate-100 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 transition-all duration-300 p-3 text-center"
+                                        key={p}
+                                        href={`/quran/page/${p}`}
+                                        className="flex flex-col items-center justify-center py-2 rounded-xl bg-slate-50 border border-slate-100 active:bg-slate-100"
                                     >
-                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Juz {juz}</span>
-                                        <span className="text-2xl font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">
-                                            {page}
-                                        </span>
-                                        <span className="text-xs text-slate-500 font-medium line-clamp-1 truncate w-full">
-                                            {mainSurah}
+                                        <span className="text-sm font-semibold text-slate-900 tabular-nums">{p}</span>
+                                        <span className="text-[10px] text-slate-500 truncate max-w-full px-1">
+                                            {getSurahsByPage(p)[0]?.name_simple}
                                         </span>
                                     </Link>
-                                )
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        </section>
+                    ))}
+                    {pagesByJuz.length === 0 && <p className="py-12 text-center text-sm text-slate-500">Halaman tersedia 1 sampai 604</p>}
+                </div>
+            )}
 
-                        {/* Pagination Controls - Bottom */}
-                        {!searchQuery && (
-                            <div className="flex items-center justify-center gap-4 mt-8">
-                                <button
-                                    onClick={() => handlePageGroupChange(Math.max(0, currentPageGroup - 1))}
-                                    disabled={currentPageGroup === 0}
-                                    className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                    Sebelumnya
-                                </button>
-                                <span className="text-slate-500">
-                                    {currentPageGroup + 1} / {totalPageGroups}
+            {/* ===== TERSIMPAN ===== */}
+            {activeTab === "saved" && (
+                <div className="pt-4 space-y-5">
+                    <section>
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Terakhir dibaca</h2>
+                        {lastRead ? (
+                            <Link
+                                href={itemHref(lastRead)}
+                                className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25"
+                            >
+                                <Clock className="w-5 h-5 text-emerald-600 shrink-0" />
+                                <span className="flex-1 min-w-0 font-semibold text-slate-900 truncate">
+                                    {lastRead.name}{lastRead.ayat ? `, ayat ${lastRead.ayat}` : ""}
                                 </span>
-                                <button
-                                    onClick={() => handlePageGroupChange(Math.min(totalPageGroups - 1, currentPageGroup + 1))}
-                                    disabled={currentPageGroup === totalPageGroups - 1}
-                                    className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Selanjutnya
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
+                                <ChevronRight className="w-5 h-5 text-emerald-600 shrink-0" />
+                            </Link>
+                        ) : (
+                            <p className="text-sm text-slate-500">Belum ada bacaan.</p>
+                        )}
+                    </section>
+
+                    <section>
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                            Bookmark ({filteredBookmarks.length})
+                        </h2>
+                        {filteredBookmarks.length > 0 ? (
+                            <ul className="rounded-2xl border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                                {filteredBookmarks.map((b) => (
+                                    <li key={b.date} className="flex items-center">
+                                        <Link href={itemHref(b)} className="flex-1 min-w-0 flex items-center gap-3 p-3 active:bg-slate-50">
+                                            {b.type === "surah"
+                                                ? <Bookmark className="w-5 h-5 fill-current text-emerald-600 shrink-0" />
+                                                : <BookOpen className="w-5 h-5 text-emerald-600 shrink-0" />}
+                                            <span className="min-w-0">
+                                                <span className="block font-medium text-slate-900 truncate">{b.name}</span>
+                                                <span className="block text-xs text-slate-500">
+                                                    {new Date(b.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                                                </span>
+                                            </span>
+                                        </Link>
+                                        <button
+                                            onClick={() => removeBookmark(b.date)}
+                                            aria-label={`Hapus bookmark ${b.name}`}
+                                            className="p-3 text-slate-400 active:text-slate-600"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="py-10 text-center rounded-2xl border border-dashed border-slate-200">
+                                <Bookmark className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+                                <p className="text-sm text-slate-500">Tekan ikon bookmark di surah atau ayat untuk menyimpannya di sini.</p>
                             </div>
                         )}
-                    </>
-                )}
-
-                {/* Empty State - Surah */}
-                {viewMode === "surah" && filteredSurahs.length === 0 && (
-                    <div className="text-center py-20">
-                        <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
-                            <Search className="w-10 h-10 text-slate-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                            Surah tidak ditemukan
-                        </h3>
-                        <p className="text-slate-500 mb-6">
-                            Coba cari dengan kata kunci yang berbeda
-                        </p>
-                        <button
-                            onClick={() => handleSearch("")}
-                            className="btn-quran"
-                        >
-                            Reset Pencarian
-                        </button>
-                    </div>
-                )}
-
-                {/* Empty State - Page */}
-                {viewMode === "page" && displayedPages.length === 0 && (
-                    <div className="text-center py-20">
-                        <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
-                            <Search className="w-10 h-10 text-slate-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                            Halaman tidak ditemukan
-                        </h3>
-                        <p className="text-slate-500 mb-6">
-                            Masukkan nomor halaman 1-604
-                        </p>
-                        <button
-                            onClick={() => handleSearch("")}
-                            className="btn-quran"
-                        >
-                            Reset Pencarian
-                        </button>
-                    </div>
-                )}
-            </section>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

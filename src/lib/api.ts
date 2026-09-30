@@ -451,3 +451,41 @@ export function formatGregorianDate(date: Date): string {
 
     return date.toLocaleDateString("id-ID", options);
 }
+
+// ---- Tafsir & navigasi antar-mode baca ----
+
+const tafsirCache = new Map<number, Record<number, string>>();
+
+// Tafsir Kemenag per ayat untuk satu surah (equran.id)
+export async function getTafsirSurah(surah: number): Promise<Record<number, string> | null> {
+    if (tafsirCache.has(surah)) return tafsirCache.get(surah)!;
+    try {
+        const res = await fetch(`${API_URLS.QURAN}/tafsir/${surah}`);
+        if (!res.ok) throw new Error("Failed to fetch tafsir");
+        const data = await res.json();
+        const map: Record<number, string> = {};
+        (data.data?.tafsir || []).forEach((t: { ayat: number; teks: string }) => {
+            map[t.ayat] = t.teks;
+        });
+        tafsirCache.set(surah, map);
+        return map;
+    } catch (error) {
+        console.error("Error fetching tafsir:", error);
+        return null;
+    }
+}
+
+// Nomor halaman mushaf (1-604) tempat sebuah ayat berada
+export async function getPageOfVerse(surah: number, ayat: number): Promise<number> {
+    try {
+        const res = await fetch(`${API_URLS.QURAN_PAGE}/verses/by_key/${surah}:${ayat}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.verse?.page_number) return data.verse.page_number;
+        }
+    } catch (error) {
+        console.error("Error fetching verse page:", error);
+    }
+    // Cadangan: halaman awal surah
+    return QURAN_CHAPTERS.find(c => c.id === surah)?.pages[0] ?? 1;
+}

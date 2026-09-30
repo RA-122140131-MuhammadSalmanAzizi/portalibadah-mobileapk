@@ -9,6 +9,9 @@ import { AudioProvider } from "@/contexts/AudioContext";
 import GlobalAudioNavigator from "@/components/GlobalAudioNavigator";
 import AppUpdater from "@/components/AppUpdater";
 import InstallPrompt from "@/components/InstallPrompt";
+import BottomNav from "@/components/BottomNav";
+import MiniPlayer from "@/components/MiniPlayer";
+import { themeInitScript } from "@/lib/theme";
 
 
 export const metadata: Metadata = {
@@ -42,7 +45,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#13110f",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -51,7 +55,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
+    <html lang="id" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-screen flex flex-col antialiased">
         <LocationProvider>
           <AudioProvider>
@@ -60,8 +67,10 @@ export default function RootLayout({
             <NotificationManager />
             <GlobalAudioNavigator />
             <Navbar />
-            <main className="flex-1 w-full">{children}</main>
+            <main className="flex-1 w-full pb-[calc(var(--nav-h)+var(--player-h)+env(safe-area-inset-bottom))] md:pb-[var(--player-h)]">{children}</main>
             <Footer />
+            <MiniPlayer />
+            <BottomNav />
             <InstallPrompt />
           </AudioProvider>
         </LocationProvider>
