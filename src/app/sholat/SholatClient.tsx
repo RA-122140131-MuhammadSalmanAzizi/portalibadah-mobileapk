@@ -10,17 +10,15 @@ import {
     Sunrise,
     Sunset,
     ChevronDown,
-    Calendar,
     Check,
-    Timer,
-    Volume2,
-    VolumeX,
+    Bell,
+    BellOff,
     Trash2,
     Plus,
     Pencil,
     X,
     Mic,
-    Info,
+    LocateFixed,
 } from "lucide-react";
 import {
     City,
@@ -87,14 +85,12 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
     const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [currentPrayer, setCurrentPrayer] = useState<string>("");
     const [countdown, setCountdown] = useState<{
         name: string;
         time: string;
         countdown: number;
     } | null>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -103,18 +99,6 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
 
     // Use initialCities if contextCities is empty
     const cities = contextCities.length > 0 ? contextCities : initialCities;
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
     // Filter cities based on search
     const filteredCities = useMemo(() => {
@@ -316,32 +300,48 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
         }
     };
 
+    // Minta izin notifikasi; bila ditolak, tawarkan membuka pengaturan HP
+    const ensureNotificationPermission = async (): Promise<boolean> => {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        let perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+        if (perm.display === 'granted') return true;
+
+        const { Dialog } = await import('@capacitor/dialog');
+        const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
+        const { value } = await Dialog.confirm({
+            title: 'Izin Notifikasi',
+            message: 'Notifikasi diperlukan agar alarm sholat dapat berbunyi. Izinkan notifikasi di pengaturan.',
+            okButtonTitle: 'Buka Pengaturan',
+            cancelButtonTitle: 'Batal',
+        });
+        if (value) {
+            try {
+                await NativeSettings.open({ optionAndroid: AndroidSettings.ApplicationDetails, optionIOS: IOSSettings.App });
+            } catch (e) {
+                console.error("Failed to open settings", e);
+            }
+        }
+        return false;
+    };
+
     // Toggle Alarm
     const toggleAlarm = async (prayerName: string) => {
         const targetState = !alarms[prayerName];
+        if (targetState && !(await ensureNotificationPermission())) return;
+        updateAlarms({ ...alarms, [prayerName]: targetState });
+    };
 
-        if (targetState) {
-            const { LocalNotifications } = await import('@capacitor/local-notifications');
-            let perm = await LocalNotifications.checkPermissions();
-            if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
-
-            if (perm.display !== 'granted') {
-                alert("Izin notifikasi diperlukan.");
-                return;
-            }
-        }
-
-        const newAlarms = { ...alarms, [prayerName]: targetState };
+    const allAlarmsOn = prayerInfo.every(p => alarms[p.name]);
+    const toggleAllAlarms = async () => {
+        if (!allAlarmsOn && !(await ensureNotificationPermission())) return;
+        const newAlarms = { ...alarms };
+        prayerInfo.forEach(p => newAlarms[p.name] = !allAlarmsOn);
         updateAlarms(newAlarms);
     };
 
-    const toggleAllAlarms = (enable: boolean) => {
-        const newAlarms: Record<string, boolean> = {};
-        prayerInfo.forEach(p => {
-            newAlarms[p.name] = enable;
-        });
-        setAlarms(newAlarms);
-    };
+    const [cityPickerOpen, setCityPickerOpen] = useState(false);
+    const [addingAlarm, setAddingAlarm] = useState(false);
 
     // Countdown timer & Alarm Check
     useEffect(() => {
@@ -412,8 +412,18 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
 
     const handleCitySelect = (city: City) => {
         setSelectedCity(city);
-        setIsDropdownOpen(false);
+        setCityPickerOpen(false);
         setSearchQuery("");
+    };
+
+    const startVoiceSearch = () => {
+        if (!('webkitSpeechRecognition' in window)) return;
+        const recognition = new (window as any).webkitSpeechRecognition();
+        recognition.lang = 'id-ID';
+        recognition.start();
+        recognition.onresult = (event: any) => {
+            setSearchQuery(event.results[0][0].transcript.replace('.', ''));
+        };
     };
 
     const formatDate = (date: Date) => {
@@ -425,473 +435,291 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
         });
     };
 
+    const nextName = countdown?.name;
+    const cd = countdown ? Math.max(0, countdown.countdown) : 0;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const cityLabel = (selectedCity?.lokasi || "Pilih kota").toLowerCase();
+
     return (
-        <div className="min-h-screen bg-white">
-            {/* Hero Section - Purple/Indigo theme for Sholat */}
-            <section data-theme="light" className="relative">
-                {/* Background Container - overflow hidden for blobs */}
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-sholat" />
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/20 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl" />
+        <div className="container-app max-w-2xl pt-4 pb-8 space-y-4">
+            {/* Judul + lokasi */}
+            <header>
+                <div className="flex items-baseline justify-between gap-3">
+                    <h1 className="text-xl font-bold text-slate-900">Jadwal Sholat</h1>
+                    <p className="text-xs text-slate-500 truncate">{mounted ? (prayerTimes?.tanggal || formatDate(new Date())) : "\u00A0"}</p>
                 </div>
+                <button
+                    onClick={() => setCityPickerOpen(true)}
+                    className="mt-3 w-full flex items-center gap-2 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                >
+                    <MapPin className="w-[18px] h-[18px] text-emerald-600 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 capitalize">{cityLabel}</span>
+                    <span className="text-xs font-semibold text-emerald-600 shrink-0">Ubah</span>
+                </button>
+            </header>
 
-                <div className="container-app relative z-20 py-6 lg:py-10">
-                    {/* Two Column Layout */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-                        {/* Left Column - Title and Location */}
-                        <div>
-                            {/* Badge */}
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm text-white/90 mb-6">
-                                <Clock className="w-4 h-4" />
-                                <span>Jadwal Sholat Hari Ini</span>
-                            </div>
-
-                            {/* Title */}
-                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-                                Jadwal Sholat
-                            </h1>
-
-                            <p className="text-white/80 text-base sm:text-lg mb-4">
-                                Waktu sholat akurat untuk seluruh Indonesia.
-                            </p>
-
-                            {/* Current Date */}
-                            <div className="flex items-center gap-2 text-white/70 text-sm mb-6">
-                                <Calendar className="w-4 h-4" />
-                                <span>{mounted ? (prayerTimes?.tanggal || formatDate(new Date())) : "\u00A0"}</span>
-                            </div>
-
-                            {/* City Selector */}
-                            <div className="relative z-50" ref={dropdownRef}>
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 flex items-center justify-center shrink-0">
-                                            <MapPin className="w-6 h-6 text-emerald-600" />
-                                        </div>
-                                        <div className="text-left overflow-hidden">
-                                            <p className="text-xs text-slate-400 font-medium">Lokasi Anda</p>
-                                            <p className="font-semibold text-slate-900 text-base sm:text-lg truncate">
-                                                {selectedCity?.lokasi || "Pilih Kota/Kabupaten"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronDown
-                                        className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
-                                    />
-                                </button>
-
-                                {/* Dropdown */}
-                                {isDropdownOpen && (
-                                    <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[999] max-h-96 overflow-hidden animate-fade-in flex flex-col">
-                                        {/* Search Input */}
-                                        <div className="p-4 border-b border-slate-100 bg-slate-50 space-y-3">
-                                            <div className="relative">
-                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Cari kota atau bicara..."
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    className="w-full pl-11 pr-12 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                                                    autoFocus
-                                                />
-                                                <button
-                                                    onClick={() => {
-                                                        if (!('webkitSpeechRecognition' in window)) {
-                                                            alert("Fitur suara tidak didukung di perangkat ini.");
-                                                            return;
-                                                        }
-                                                        const recognition = new (window as any).webkitSpeechRecognition();
-                                                        recognition.lang = 'id-ID';
-                                                        recognition.start();
-                                                        recognition.onresult = (event: any) => {
-                                                            const transcript = event.results[0][0].transcript;
-                                                            setSearchQuery(transcript.replace('.', '')); // Remove trailing dots
-                                                        };
-                                                    }}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-slate-100 rounded-lg transition-colors"
-                                                    title="Gunakan Suara"
-                                                >
-                                                    <Mic className="w-4 h-4" />
-                                                </button>
-                                            </div>
-
-                                            <button
-                                                onClick={() => {
-                                                    detectLocation();
-                                                    setIsDropdownOpen(false);
-                                                }}
-                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors font-medium text-sm shadow-sm"
-                                            >
-                                                <MapPin className="w-4 h-4" />
-                                                Deteksi Lokasi Otomatis
-                                            </button>
-                                        </div>
-
-                                        {/* City List */}
-                                        <div className="max-h-72 overflow-y-auto">
-                                            {filteredCities.length > 0 ? (
-                                                filteredCities.map((city) => (
-                                                    <button
-                                                        key={city.id}
-                                                        onClick={() => handleCitySelect(city)}
-                                                        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-indigo-50 transition-colors text-left group"
-                                                    >
-                                                        <span className="text-slate-700 group-hover:text-indigo-600 transition-colors">
-                                                            {city.lokasi}
-                                                        </span>
-                                                        {selectedCity?.id === city.id && (
-                                                            <Check className="w-5 h-5 text-indigo-500" />
-                                                        )}
-                                                    </button>
-                                                ))
-                                            ) : cities.length === 0 ? (
-                                                <div className="px-5 py-8 text-center">
-                                                    <div className="spinner mx-auto mb-3" />
-                                                    <p className="text-slate-500 text-sm">Memuat daftar kota...</p>
-                                                </div>
-                                            ) : (
-                                                <div className="px-5 py-8 text-center text-slate-400 text-sm">
-                                                    <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                                    Kota tidak ditemukan
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+            {/* Sholat berikutnya */}
+            <section data-theme="light" className="rounded-2xl bg-gradient-sholat p-4">
+                {countdown && !loading ? (
+                    <div className="flex items-end justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-xs text-white/60">Menuju</p>
+                            <p className="text-2xl font-bold text-white leading-tight">{countdown.name}</p>
+                            <p className="text-sm text-white/70">{countdown.time} WIB</p>
                         </div>
-
-                        {/* Right Column - Next Prayer Card */}
-                        <div className="lg:pt-4">
-                            {countdown && !loading ? (
-                                <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 lg:p-8 border border-white/20">
-                                    <div className="text-center">
-                                        <p className="text-white/70 text-xs sm:text-sm mb-2">Jadwal Selanjutnya</p>
-                                        <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
-                                            {countdown.name}
-                                        </h3>
-                                        <p className="text-white/80 text-lg sm:text-xl mb-6">{countdown.time} WIB</p>
-
-                                        <div className="inline-flex items-center gap-3 px-6 py-4 bg-white/20 backdrop-blur-sm rounded-2xl">
-                                            <Timer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                                            <span className="text-2xl sm:text-3xl lg:text-4xl font-mono font-bold text-white">
-                                                {formatCountdown(countdown.countdown)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 lg:p-8 border border-white/20">
-                                    <div className="text-center">
-                                        <div className="space-y-4">
-                                            <div className="h-4 w-32 bg-white/20 rounded mx-auto" />
-                                            <div className="h-12 w-24 bg-white/20 rounded mx-auto" />
-                                            <div className="h-6 w-20 bg-white/20 rounded mx-auto" />
-                                            <div className="h-14 w-48 bg-white/20 rounded-2xl mx-auto" />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Prayer Times Grid */}
-            <section className="container-app py-8 lg:py-16">
-                <div className="flex items-center justify-between mb-6 lg:mb-8">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                        Jadwal Lengkap Hari Ini
-                    </h2>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={async () => {
-                                const allEnabled = prayerInfo.every(p => alarms[p.name]);
-
-                                if (!allEnabled) {
-                                    // Importing dynamically to handle client-side logic safely
-                                    const { LocalNotifications } = await import('@capacitor/local-notifications');
-                                    const { Dialog } = await import('@capacitor/dialog');
-                                    const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
-
-                                    let perm = await LocalNotifications.checkPermissions();
-
-                                    if (perm.display !== 'granted') {
-                                        // Request permission directly first
-                                        perm = await LocalNotifications.requestPermissions();
-                                    }
-
-                                    if (perm.display !== 'granted') {
-                                        // If still denied, show Dialog
-                                        const { value } = await Dialog.confirm({
-                                            title: 'Izin Notifikasi',
-                                            message: 'Notifikasi diperlukan agar alarm sholat dapat berbunyi. Mohon izinkan notifikasi di pengaturan.',
-                                            okButtonTitle: 'Buka Pengaturan',
-                                            cancelButtonTitle: 'Batal'
-                                        });
-
-                                        if (value) {
-                                            try {
-                                                await NativeSettings.open({
-                                                    optionAndroid: AndroidSettings.ApplicationDetails,
-                                                    optionIOS: IOSSettings.App
-                                                });
-                                            } catch (e) {
-                                                console.error("Failed to open settings", e);
-                                            }
-                                        }
-                                        return; // Stop here, don't enable alarms yet
-                                    }
-                                }
-
-                                const newAlarms = { ...alarms };
-                                prayerInfo.forEach(p => newAlarms[p.name] = !allEnabled);
-                                updateAlarms(newAlarms);
-                            }}
-                            className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        >
-                            <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${prayerInfo.every(p => alarms[p.name]) ? 'bg-[#00ff2a] shadow-[0_0_10px_#00ff2a,0_0_20px_#00ff2a] animate-pulse' : 'bg-slate-400'}`} />
-                            <span className="text-slate-700">
-                                {prayerInfo.every(p => alarms[p.name]) ? 'Alarm Aktif' : 'Nyalakan Semua'}
-                            </span>
-                        </button>
-                        <div className="badge badge-sholat">
-                            <Clock className="w-3 h-3 mr-1" />
-                            7 Waktu
-                        </div>
-                    </div>
-                </div>
-
-                {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                        {[...Array(7)].map((_, i) => (
-                            <div key={i} className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-100">
-                                <div className="skeleton h-12 w-12 sm:h-14 sm:w-14 rounded-2xl mb-4" />
-                                <div className="skeleton h-3 sm:h-4 w-20 mb-2" />
-                                <div className="skeleton h-6 sm:h-8 w-16" />
-                            </div>
-                        ))}
-                    </div>
-                ) : prayerTimes ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                        {prayerInfo.map((prayer) => {
-                            const Icon = prayer.icon;
-                            const isActive = currentPrayer === prayer.name;
-                            const time = prayerTimes[prayer.key];
-
-                            return (
-                                <div
-                                    key={prayer.key}
-                                    className={`relative rounded-2xl p-4 sm:p-6 transition-all duration-300 ${isActive
-                                        ? "bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 shadow-lg"
-                                        : "bg-white border border-slate-100 hover:border-slate-200 hover:shadow-lg"
-                                        }`}
-                                >
-                                    {/* Active Indicator or Alarm Toggle */}
-                                    <div className="absolute top-4 right-4 z-10">
-                                        {isActive ? (
-                                            <span className="flex h-2 w-2 sm:h-3 sm:w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-indigo-500"></span>
-                                            </span>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleAlarm(prayer.name);
-                                                }}
-                                                className={`p-2.5 rounded-full transition-all ${alarms[prayer.name]
-                                                    ? "bg-indigo-100 text-indigo-600"
-                                                    : "bg-slate-50 text-slate-400 hover:bg-slate-100"
-                                                    }`}
-                                                title={alarms[prayer.name] ? "Matikan Alarm" : "Hidupkan Alarm"}
-                                            >
-                                                {alarms[prayer.name] ? (
-                                                    <Volume2 className="w-6 h-6" />
-                                                ) : (
-                                                    <VolumeX className="w-6 h-6" />
-                                                )}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Icon */}
-                                    <div className="flex items-center mb-3 sm:mb-4">
-                                        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
-                                    </div>
-
-                                    {/* Prayer Name */}
-                                    <p className={`text-xs sm:text-sm font-medium mb-1 ${isActive ? "text-indigo-600" : "text-slate-500"}`}>
-                                        {prayer.name}
-                                    </p>
-
-                                    {/* Time */}
-                                    <p className={`text-xl sm:text-2xl font-bold ${isActive ? "text-indigo-700" : "text-slate-900"}`}>
-                                        {time}
-                                    </p>
-                                </div>
-                            );
-                        })}
+                        <p className="font-mono text-3xl font-bold text-emerald-200 tabular-nums" aria-label="Hitung mundur">
+                            {pad(Math.floor(cd / 3600))}:{pad(Math.floor((cd % 3600) / 60))}:{pad(cd % 60)}
+                        </p>
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-slate-50 rounded-3xl">
-                        <div className="mx-auto mb-4 flex items-center justify-center">
-                            <Clock className="w-10 h-10 text-slate-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                            Gagal memuat jadwal sholat
-                        </h3>
-                        <p className="text-slate-500">Silakan coba pilih kota lain</p>
+                    <div className="space-y-2 animate-pulse" aria-label="Memuat">
+                        <div className="h-3 w-16 bg-white/15 rounded" />
+                        <div className="h-7 w-28 bg-white/15 rounded" />
+                        <div className="h-3 w-20 bg-white/10 rounded" />
                     </div>
                 )}
             </section>
 
-            {/* Custom Scedules Section */}
-            <section className="container-app pb-8">
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 lg:p-8 shadow-sm">
-                    <h3 className="font-bold text-slate-900 mb-6 text-xl flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-indigo-600" />
-                        Jadwal Sholat Tambahan (Maks. 5)
-                    </h3>
+            {/* Daftar waktu sholat */}
+            <section className="rounded-2xl border border-slate-100 overflow-hidden">
+                <div className="flex items-center justify-between px-4 h-12 border-b border-slate-100">
+                    <h2 className="text-sm font-semibold text-slate-900">Hari ini</h2>
+                    <button
+                        role="switch"
+                        aria-checked={allAlarmsOn}
+                        onClick={toggleAllAlarms}
+                        className="flex items-center gap-2 text-xs font-medium text-slate-600"
+                    >
+                        Semua alarm
+                        <span className={`relative w-10 h-6 rounded-full transition-colors ${allAlarmsOn ? "bg-emerald-500" : "bg-slate-300"}`}>
+                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${allAlarmsOn ? "left-5" : "left-1"}`} />
+                        </span>
+                    </button>
+                </div>
 
-                    {/* List */}
-                    <div className="space-y-4 mb-6">
-                        {customAlarms.length === 0 && (
-                            <p className="text-slate-500 text-sm italic">Belum ada jadwal tambahan.</p>
-                        )}
-                        {customAlarms.map((alarm) => (
-                            <div key={alarm.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                {editingId === alarm.id ? (
-                                    <div className="flex-1 flex flex-col sm:flex-row gap-3 items-center w-full">
-                                        <div className="flex-1 w-full gap-2 flex flex-col sm:flex-row">
-                                            <input
-                                                type="text"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                className="w-full sm:flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
-                                                autoFocus
-                                            />
-                                            <input
-                                                type="time"
-                                                value={editTime}
-                                                onChange={(e) => setEditTime(e.target.value)}
-                                                className="w-full sm:w-32 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
-                                            />
-                                        </div>
-                                        <div className="flex items-center gap-2 self-end sm:self-center">
-                                            <button onClick={saveEdit} className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                                                <Check className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={cancelEditing} className="p-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors">
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div>
-                                            <p className="font-semibold text-slate-900">{alarm.name}</p>
-                                            <p className="text-2xl font-bold text-indigo-600 font-mono">{alarm.time}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 sm:gap-3">
-                                            <button
-                                                onClick={() => startEditing(alarm)}
-                                                className="p-2.5 bg-indigo-50 text-indigo-500 rounded-full hover:bg-indigo-100 transition-colors"
-                                            >
-                                                <Pencil className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => toggleCustomAlarm(alarm.id)}
-                                                className={`p-2.5 rounded-full transition-all ${alarm.enabled
-                                                    ? "bg-indigo-100 text-indigo-600"
-                                                    : "bg-slate-200 text-slate-400"
-                                                    }`}
-                                            >
-                                                {alarm.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                                            </button>
-                                            <button
-                                                onClick={() => removeCustomAlarm(alarm.id)}
-                                                className="p-2.5 bg-rose-50 text-rose-500 rounded-full hover:bg-rose-100 transition-colors"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                {loading ? (
+                    <ul className="divide-y divide-slate-100">
+                        {prayerInfo.map((p) => (
+                            <li key={p.key} className="h-14 px-4 flex items-center gap-3 animate-pulse">
+                                <div className="w-5 h-5 rounded bg-slate-100" />
+                                <div className="h-3 w-16 rounded bg-slate-100" />
+                                <div className="ml-auto h-4 w-12 rounded bg-slate-100" />
+                            </li>
                         ))}
+                    </ul>
+                ) : prayerTimes ? (
+                    <ul className="divide-y divide-slate-100">
+                        {prayerInfo.map((prayer) => {
+                            const Icon = prayer.icon;
+                            const isCurrent = currentPrayer === prayer.name;
+                            const isNext = nextName === prayer.name;
+                            const alarmOn = !!alarms[prayer.name];
+                            return (
+                                <li
+                                    key={prayer.key}
+                                    className={`h-14 pl-4 pr-2 flex items-center gap-3 ${isNext ? "bg-emerald-500/10" : ""}`}
+                                >
+                                    <Icon className={`w-5 h-5 shrink-0 ${isNext || isCurrent ? "text-emerald-600" : "text-slate-400"}`} />
+                                    <span className={`font-medium ${isNext ? "text-slate-900" : "text-slate-700"}`}>{prayer.name}</span>
+                                    {isNext && <span className="text-[11px] font-semibold text-emerald-600">Berikutnya</span>}
+                                    {isCurrent && !isNext && <span className="text-[11px] font-semibold text-slate-500">Sekarang</span>}
+                                    <span className={`ml-auto text-lg tabular-nums ${isNext ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>
+                                        {prayerTimes[prayer.key]}
+                                    </span>
+                                    <button
+                                        onClick={() => toggleAlarm(prayer.name)}
+                                        aria-label={alarmOn ? `Matikan alarm ${prayer.name}` : `Nyalakan alarm ${prayer.name}`}
+                                        aria-pressed={alarmOn}
+                                        className={`w-10 h-10 flex items-center justify-center ${alarmOn ? "text-emerald-600" : "text-slate-400"}`}
+                                    >
+                                        {alarmOn ? <Bell className="w-5 h-5 fill-current" /> : <BellOff className="w-5 h-5" />}
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                ) : (
+                    <div className="py-10 text-center">
+                        <p className="font-medium text-slate-700">Gagal memuat jadwal sholat</p>
+                        <p className="text-sm text-slate-500 mt-1">Periksa koneksi internet atau pilih kota lain.</p>
                     </div>
+                )}
+            </section>
 
-                    {/* Add Form */}
-                    {customAlarms.length < 5 && (
-                        <div className="flex flex-col sm:flex-row gap-3 items-end">
-                            <div className="w-full">
-                                <label className="text-xs text-slate-500 mb-1 block">Nama Sholat</label>
-                                <input
-                                    type="text"
-                                    value={newAlarmName}
-                                    onChange={(e) => setNewAlarmName(e.target.value)}
-                                    placeholder="Contoh: Tahajud"
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400"
-                                />
-                            </div>
-                            <div className="w-full sm:w-40">
-                                <label className="text-xs text-slate-500 mb-1 block">Waktu</label>
-                                <input
-                                    type="time"
-                                    value={newAlarmTime}
-                                    onChange={(e) => setNewAlarmTime(e.target.value)}
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400"
-                                />
-                            </div>
-                            <button
-                                onClick={addCustomAlarm}
-                                disabled={!newAlarmName || !newAlarmTime}
-                                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                <Plus className="w-5 h-5" />
-                                Tambah
-                            </button>
-                        </div>
+            {/* Pengingat tambahan */}
+            <section className="rounded-2xl border border-slate-100 overflow-hidden">
+                <div className="flex items-center justify-between px-4 h-12 border-b border-slate-100">
+                    <h2 className="text-sm font-semibold text-slate-900">
+                        Pengingat tambahan <span className="font-normal text-slate-500">({customAlarms.length}/5)</span>
+                    </h2>
+                    {customAlarms.length < 5 && !addingAlarm && (
+                        <button onClick={() => setAddingAlarm(true)} className="flex items-center gap-1 text-sm font-semibold text-emerald-600">
+                            <Plus className="w-4 h-4" />
+                            Tambah
+                        </button>
                     )}
                 </div>
+
+                {customAlarms.length === 0 && !addingAlarm && (
+                    <p className="px-4 py-4 text-sm text-slate-500">Misalnya Tahajud atau Dhuha, dengan jam pilihanmu sendiri.</p>
+                )}
+
+                <ul className="divide-y divide-slate-100">
+                    {customAlarms.map((alarm) => (
+                        <li key={alarm.id} className="pl-4 pr-2 py-2">
+                            {editingId === alarm.id ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        aria-label="Nama pengingat"
+                                        className="flex-1 min-w-0 h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                                        autoFocus
+                                    />
+                                    <input
+                                        type="time"
+                                        value={editTime}
+                                        onChange={(e) => setEditTime(e.target.value)}
+                                        aria-label="Jam pengingat"
+                                        className="w-28 h-10 px-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                                    />
+                                    <button onClick={saveEdit} aria-label="Simpan" className="w-10 h-10 flex items-center justify-center text-emerald-600">
+                                        <Check className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={cancelEditing} aria-label="Batal" className="w-10 h-10 flex items-center justify-center text-slate-400">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <Clock className="w-5 h-5 text-slate-400 shrink-0" />
+                                    <span className="font-medium text-slate-700 truncate">{alarm.name}</span>
+                                    <span className="ml-auto text-lg font-semibold tabular-nums text-slate-800">{alarm.time}</span>
+                                    <div className="flex items-center">
+                                        <button
+                                            onClick={() => toggleCustomAlarm(alarm.id)}
+                                            aria-label={alarm.enabled ? `Matikan ${alarm.name}` : `Nyalakan ${alarm.name}`}
+                                            aria-pressed={alarm.enabled}
+                                            className={`w-9 h-10 flex items-center justify-center ${alarm.enabled ? "text-emerald-600" : "text-slate-400"}`}
+                                        >
+                                            {alarm.enabled ? <Bell className="w-5 h-5 fill-current" /> : <BellOff className="w-5 h-5" />}
+                                        </button>
+                                        <button onClick={() => startEditing(alarm)} aria-label={`Ubah ${alarm.name}`} className="w-9 h-10 flex items-center justify-center text-slate-400">
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => removeCustomAlarm(alarm.id)} aria-label={`Hapus ${alarm.name}`} className="w-9 h-10 flex items-center justify-center text-slate-400">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+
+                {addingAlarm && customAlarms.length < 5 && (
+                    <div className="p-3 border-t border-slate-100 flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={newAlarmName}
+                            onChange={(e) => setNewAlarmName(e.target.value)}
+                            placeholder="Nama, mis. Tahajud"
+                            aria-label="Nama pengingat baru"
+                            className="flex-1 min-w-0 h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500 placeholder:text-slate-400"
+                            autoFocus
+                        />
+                        <input
+                            type="time"
+                            value={newAlarmTime}
+                            onChange={(e) => setNewAlarmTime(e.target.value)}
+                            aria-label="Jam pengingat baru"
+                            className="w-28 h-10 px-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                        />
+                        <button
+                            onClick={async () => {
+                                await addCustomAlarm();
+                                setAddingAlarm(false);
+                            }}
+                            disabled={!newAlarmName || !newAlarmTime}
+                            className="h-10 px-3 rounded-lg bg-emerald-500 text-white text-sm font-semibold disabled:opacity-40"
+                        >
+                            Simpan
+                        </button>
+                        <button onClick={() => setAddingAlarm(false)} aria-label="Batal" className="w-8 h-10 flex items-center justify-center text-slate-400">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                )}
             </section>
 
-            {/* Info Section */}
-            <section className="container-app pb-16">
-                <div className="bg-slate-50 rounded-3xl p-8 lg:p-10">
-                    <h3 className="font-bold text-slate-900 mb-6 text-lg flex items-center gap-2">
-                        <Info className="w-5 h-5 text-emerald-600" />
-                        Informasi Penting
-                    </h3>
-                    <ul className="space-y-4 text-slate-600">
-                        <li className="flex items-start gap-3">
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                            <span>
-                                Jadwal sholat dihitung berdasarkan koordinat kota/kabupaten yang dipilih.
-                            </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                            <span>
-                                Waktu yang ditampilkan dalam zona waktu lokal (WIB/WITA/WIT).
-                            </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                            <span>
-                                Disarankan untuk mengikuti jadwal sholat dari masjid setempat.
-                            </span>
-                        </li>
-                    </ul>
+            <p className="text-xs text-slate-500 leading-relaxed px-1">
+                Jadwal mengikuti kota yang dipilih, dalam zona waktu setempat. Untuk kepastian, ikuti jadwal masjid terdekat.
+            </p>
+
+            {/* Pilih kota (bottom sheet) */}
+            {cityPickerOpen && (
+                <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Pilih kota">
+                    <button aria-label="Tutup" className="absolute inset-0 bg-black/50" onClick={() => setCityPickerOpen(false)} />
+                    <div
+                        className="absolute inset-x-0 bottom-0 max-h-[85vh] flex flex-col rounded-t-3xl bg-white border-t border-slate-200 animate-fade-in"
+                        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                    >
+                        <div className="shrink-0 px-4 pt-3 pb-3 border-b border-slate-100 space-y-3">
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto" />
+                            <div className="flex items-center justify-between">
+                                <h2 className="font-semibold text-lg text-slate-900">Pilih kota</h2>
+                                <button onClick={() => setCityPickerOpen(false)} aria-label="Tutup" className="p-2 -mr-2 text-slate-500">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <label className="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 focus-within:border-emerald-500">
+                                <Search className="w-[18px] h-[18px] text-slate-400 shrink-0" />
+                                <input
+                                    type="search"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Cari kota atau kabupaten..."
+                                    aria-label="Cari kota"
+                                    className="flex-1 min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                                    autoFocus
+                                />
+                                <button onClick={startVoiceSearch} aria-label="Cari dengan suara" className="p-1 -mr-1 text-slate-400">
+                                    <Mic className="w-4 h-4" />
+                                </button>
+                            </label>
+                            <button
+                                onClick={() => {
+                                    detectLocation();
+                                    setCityPickerOpen(false);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-emerald-500/40 text-emerald-600 text-sm font-semibold"
+                            >
+                                <LocateFixed className="w-4 h-4" />
+                                Gunakan lokasi saya
+                            </button>
+                        </div>
+                        <ul className="overflow-y-auto divide-y divide-slate-100">
+                            {filteredCities.map((city) => (
+                                <li key={city.id}>
+                                    <button
+                                        onClick={() => handleCitySelect(city)}
+                                        className="w-full flex items-center justify-between px-4 h-12 text-left active:bg-slate-50"
+                                    >
+                                        <span className="text-sm text-slate-700 capitalize">{city.lokasi.toLowerCase()}</span>
+                                        {selectedCity?.id === city.id && <Check className="w-5 h-5 text-emerald-600" />}
+                                    </button>
+                                </li>
+                            ))}
+                            {filteredCities.length === 0 && (
+                                <li className="px-4 py-10 text-center text-sm text-slate-500">
+                                    {cities.length === 0 ? "Memuat daftar kota..." : "Kota tidak ditemukan"}
+                                </li>
+                            )}
+                        </ul>
+                    </div>
                 </div>
-            </section>
+            )}
         </div>
     );
 }

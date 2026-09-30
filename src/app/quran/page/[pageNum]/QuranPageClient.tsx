@@ -23,7 +23,8 @@ import {
     Loader2,
 } from "lucide-react";
 import { QuranPageData, getQuranPageData } from "@/lib/api";
-import { QURAN_CHAPTERS, setReadMode } from "@/lib/quran-data";
+import { QURAN_CHAPTERS, getSurahsByPage, setReadMode } from "@/lib/quran-data";
+import { JUZ_STARTS } from "@/lib/juz";
 import { useAudio } from "@/contexts/AudioContext";
 import AyahNumber from "@/components/AyahNumber";
 import AyahInsightSheet, { InsightAyah } from "@/components/AyahInsightSheet";
@@ -50,12 +51,95 @@ const PLAYBACK_MODES: { id: PlaybackMode; label: string; icon: typeof Play }[] =
     { id: "repeat", label: "Ulangi", icon: Repeat1 },
 ];
 
-// Cache lintas navigasi
+// Cache lintas navigasi: data teks per halaman dan halaman yang gambarnya sudah termuat
 const pagesCache = new Map<number, QuranPageData>();
+const loadedImages = new Set<number>();
+
+// Jumlah halaman yang disiapkan di kiri & kanan halaman aktif (total 5 halaman)
+const WINDOW = 2;
+
+const juzOfPage = (p: number) => [...JUZ_STARTS].reverse().find((j) => p >= j.page)?.juz ?? 1;
+const titleOfPage = (p: number) => getSurahsByPage(p)[0]?.name_simple ?? "Al-Qur'an";
 
 const pageImageUrl = (p: number) => `https://media.qurankemenag.net/khat2/QK_${p.toString().padStart(3, "0")}.webp`;
 const cleanTranslation = (text: string) => text.replace(/<sup[^>]*>.*?<\/sup>/g, "").replace(/<[^>]+>/g, "").trim();
 const surahName = (id: number) => QURAN_CHAPTERS.find((c) => c.id === id)?.name_simple ?? `Surah ${id}`;
+
+/**
+ * Satu halaman mushaf. Elemen ini tetap hidup selama halamannya ada di jendela 5 halaman,
+ * sehingga saat dibalik gambar hanya digeser, tidak dimuat atau di-decode ulang.
+ */
+function MushafSlide({
+    page,
+    offset,
+    swipeOffset,
+    animate,
+    imageStyle,
+    onLoaded,
+    onZoomChange,
+}: {
+    page: number;
+    offset: number;
+    swipeOffset: number;
+    animate: boolean;
+    imageStyle: React.CSSProperties;
+    onLoaded: (page: number) => void;
+    onZoomChange: (zoomed: boolean) => void;
+}) {
+    const isCurrent = offset === 0;
+    const ref = useRef<ReactZoomPanPinchContentRef>(null);
+    const [zoomed, setZoomed] = useState(false);
+
+    // Keluar dari posisi aktif: kembalikan zoom
+    useEffect(() => {
+        if (!isCurrent) ref.current?.resetTransform(0);
+    }, [isCurrent]);
+
+    return (
+        <div
+            className="absolute inset-0"
+            aria-hidden={!isCurrent}
+            style={{
+                // Kiri = halaman berikutnya (arah baca mushaf kanan ke kiri)
+                transform: `translateX(calc(${-offset * 100}% + ${swipeOffset}px))`,
+                transition: animate ? "transform 0.26s ease-out" : "none",
+                visibility: Math.abs(offset) > 1 ? "hidden" : "visible",
+            }}
+        >
+            <TransformWrapper
+                ref={ref}
+                initialScale={1}
+                minScale={1}
+                maxScale={3}
+                disabled={!isCurrent}
+                panning={{ disabled: !zoomed }}
+                doubleClick={{ mode: "toggle", step: 1.5 }}
+                onTransformed={(_, state) => {
+                    const z = state.scale > 1.01;
+                    if (z !== zoomed) setZoomed(z);
+                    if (isCurrent) onZoomChange(z);
+                }}
+            >
+                <TransformComponent
+                    wrapperStyle={{ width: "100%", height: "100%" }}
+                    contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 8px" }}
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={pageImageUrl(page)}
+                        alt={isCurrent ? `Mushaf halaman ${page}` : ""}
+                        draggable={false}
+                        decoding="async"
+                        fetchPriority={isCurrent ? "high" : "low"}
+                        onLoad={() => onLoaded(page)}
+                        className="max-h-full max-w-full w-auto h-auto object-contain"
+                        style={imageStyle}
+                    />
+                </TransformComponent>
+            </TransformWrapper>
+        </div>
+    );
+}
 
 export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const router = useRouter();
@@ -64,7 +148,9 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [sliderPage, setSliderPage] = useState(initialPage);
     const [pageData, setPageData] = useState<QuranPageData | null>(() => pagesCache.get(initialPage) || null);
-    const [imageLoading, setImageLoading] = useState(true);
+    const [pageDataLoading, setPageDataLoading] = useState(false);
+    const [currentLoaded, setCurrentLoaded] = useState(() => loadedImages.has(initialPage));
+    const [showSpinner, setShowSpinner] = useState(false);
 
     const [theme, setTheme] = useState<ReaderTheme>("yellow");
     const [chromeVisible, setChromeVisible] = useState(true);
@@ -86,7 +172,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const touchEndX = useRef<number | null>(null);
     const horizontal = useRef<boolean | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
+    const currentPageRef = useRef(initialPage);
 
     const { playQueue, pause, toggle, isPlaying, currentTrack, playbackMode, setPlaybackMode } = useAudio();
     const isPageActive = currentTrack?.meta?.page === currentPage;
@@ -118,36 +204,51 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
         localStorage.setItem("quran-theme", t);
     };
 
-    // Muat data halaman + prefetch tetangga
+    // Ganti halaman: gambar sudah disiapkan oleh jendela 5 halaman, jadi di sini tidak ada unduhan.
+    // Data teks (terjemahan/audio) hanya diambil saat dibutuhkan, lihat ensurePageData.
     useEffect(() => {
-        transformRef.current?.resetTransform();
+        currentPageRef.current = currentPage;
         setIsZoomed(false);
         setSliderPage(currentPage);
-        setImageLoading(true);
-
-        const cached = pagesCache.get(currentPage);
-        if (cached) setPageData(cached);
-        else {
-            getQuranPageData(currentPage).then((d) => {
-                if (d) {
-                    pagesCache.set(currentPage, d);
-                    setPageData(d);
-                }
-            });
-        }
+        setCurrentLoaded(loadedImages.has(currentPage));
+        setPageData(pagesCache.get(currentPage) || null);
 
         const url = `/quran/page/${currentPage}`;
         if (window.location.pathname !== url) window.history.replaceState(null, "", url);
-
-        [-1, 1, 2].forEach((o) => {
-            const p = currentPage + o;
-            if (p >= 1 && p <= TOTAL_PAGES) {
-                if (!pagesCache.has(p)) getQuranPageData(p).then((d) => d && pagesCache.set(p, d));
-                const img = new Image();
-                img.src = pageImageUrl(p);
-            }
-        });
     }, [currentPage]);
+
+    // Spinner hanya bila halaman belum termuat lebih dari 300 ms (hindari kedipan)
+    useEffect(() => {
+        if (currentLoaded) {
+            setShowSpinner(false);
+            return;
+        }
+        const t = setTimeout(() => setShowSpinner(true), 300);
+        return () => clearTimeout(t);
+    }, [currentLoaded]);
+
+    const handleImageLoaded = useCallback((p: number) => {
+        loadedImages.add(p);
+        if (p === currentPageRef.current) setCurrentLoaded(true);
+    }, []);
+
+    const ensurePageData = useCallback(async (p: number): Promise<QuranPageData | null> => {
+        const cached = pagesCache.get(p);
+        if (cached) return cached;
+        setPageDataLoading(true);
+        const d = await getQuranPageData(p);
+        setPageDataLoading(false);
+        if (d) {
+            pagesCache.set(p, d);
+            if (p === currentPageRef.current) setPageData(d);
+        }
+        return d;
+    }, []);
+
+    // Panel terjemahan terbuka: ambil data halaman aktif
+    useEffect(() => {
+        if (sheet === "translation") ensurePageData(currentPage);
+    }, [sheet, currentPage, ensurePageData]);
 
     // Tetap tampil selama ada panel terbuka atau slider sedang digeser
     const holdChrome = sheet !== "none" || !!insight || draggingSlider;
@@ -171,9 +272,8 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
         } catch { }
     }, [currentPage]);
 
-    const firstSurah = pageData?.pageNumber === currentPage ? pageData.meta.surahs[0]?.name : undefined;
-    const pageTitle = firstSurah ?? surahName(QURAN_CHAPTERS.find((c) => currentPage >= c.pages[0] && currentPage <= c.pages[1])?.id ?? 1);
-    const juz = pageData?.pageNumber === currentPage ? pageData.meta.juz : undefined;
+    const pageTitle = titleOfPage(currentPage);
+    const juz = juzOfPage(currentPage);
 
     const toggleBookmark = () => {
         const bks = JSON.parse(localStorage.getItem("quran-bookmarks") || "[]");
@@ -217,8 +317,8 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     }, [currentPage, goTo, sheet, insight]);
 
     // ---- Audio ----
-    const pageTracks = () =>
-        (pageData?.verses || [])
+    const pageTracks = (data: QuranPageData | null) =>
+        (data?.verses || [])
             .filter((v) => v.audioUrl)
             .map((v) => {
                 const [s, a] = v.verseKey.split(":");
@@ -231,26 +331,26 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                 };
             });
 
-    const handlePlayToggle = () => {
+    const handlePlayToggle = async () => {
         if (isPagePlaying) return pause();
         if (isPageActive) return toggle();
-        const tracks = pageTracks();
+        const tracks = pageTracks(await ensurePageData(currentPage));
         if (tracks.length) playQueue(tracks, 0);
         else showToast("Audio belum tersedia");
     };
 
     const playFromVerse = (verseKey: string) => {
         if (currentTrack?.meta?.verseKey === verseKey) return toggle();
-        const tracks = pageTracks();
+        const tracks = pageTracks(pageData);
         const idx = tracks.findIndex((t) => t.meta.verseKey === verseKey);
         if (idx >= 0) playQueue(tracks, idx);
     };
 
     // ---- Pindah ke mode per ayat ----
-    const switchToAyatMode = () => {
+    const switchToAyatMode = async () => {
         setSwitchingMode(true);
         setReadMode("ayat");
-        const first = pageData?.verses[0]?.verseKey;
+        const first = (await ensurePageData(currentPage))?.verses[0]?.verseKey;
         if (first) {
             const [s, a] = first.split(":");
             router.push(`/quran/${s}#ayat-${a}`);
@@ -316,25 +416,15 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const imageFilter =
         theme === "dark" ? { filter: "invert(0.9) hue-rotate(180deg) brightness(0.95)" } : theme === "yellow" ? { mixBlendMode: "multiply" as const } : {};
 
-    const renderPage = (p: number, isCurrent = false) =>
-        p >= 1 && p <= TOTAL_PAGES ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-                src={pageImageUrl(p)}
-                alt={isCurrent ? `Mushaf halaman ${p}` : ""}
-                draggable={false}
-                onLoad={isCurrent ? () => setImageLoading(false) : undefined}
-                className="max-h-full max-w-full w-auto h-auto object-contain"
-                style={imageFilter}
-            />
-        ) : null;
+    const windowPages: number[] = [];
+    for (let p = currentPage - WINDOW; p <= currentPage + WINDOW; p++) if (p >= 1 && p <= TOTAL_PAGES) windowPages.push(p);
 
     const iconBtn = "w-10 h-10 flex items-center justify-center rounded-full text-slate-700 active:bg-slate-900/10";
 
     return (
         <div
             data-theme={dataTheme}
-            className="fixed inset-0 z-40 flex flex-col bg-white text-slate-900 select-none overflow-hidden"
+            className="fixed inset-0 z-40 flex flex-col bg-white text-slate-900 select-none overflow-hidden overscroll-none"
             onPointerDownCapture={() => !holdChrome && revealChrome()}
         >
             {/* ===== Bar atas ===== */}
@@ -393,51 +483,35 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             <main
                 ref={containerRef}
                 className="relative flex-1 overflow-hidden"
-                style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+                style={{
+                    paddingTop: "env(safe-area-inset-top)",
+                    paddingBottom: "env(safe-area-inset-bottom)",
+                    // Geser horizontal dipakai untuk membalik halaman, bukan gestur "kembali" browser
+                    touchAction: isZoomed ? "none" : "pan-y pinch-zoom",
+                    overscrollBehavior: "none",
+                }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
             >
-                {imageLoading && (
+                {showSpinner && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
                         <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                     </div>
                 )}
                 <div className="relative h-full overflow-hidden">
-                <div
-                    className="absolute inset-y-0 flex w-[300%]"
-                    style={{
-                        left: "-100%",
-                        transform: `translateX(${swipeOffset}px)`,
-                        transition: isSwiping || isResetting ? "none" : "transform 0.26s ease-out",
-                    }}
-                >
-                    {/* Kiri = halaman berikutnya (arah baca kanan ke kiri) */}
-                    <div className="w-1/3 h-full flex items-center justify-center px-2 py-3">{renderPage(currentPage + 1)}</div>
-                    <div className="w-1/3 h-full">
-                        <TransformWrapper
-                            ref={transformRef}
-                            initialScale={1}
-                            minScale={1}
-                            maxScale={3}
-                            panning={{ disabled: !isZoomed }}
-                            doubleClick={{ mode: "toggle", step: 1.5 }}
-                            pinch={{ disabled: false }}
-                            onTransformed={(_, state) => {
-                                const zoomed = state.scale > 1.01;
-                                if (zoomed !== isZoomed) setIsZoomed(zoomed);
-                            }}
-                        >
-                            <TransformComponent
-                                wrapperStyle={{ width: "100%", height: "100%" }}
-                                contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 8px" }}
-                            >
-                                {renderPage(currentPage, true)}
-                            </TransformComponent>
-                        </TransformWrapper>
-                    </div>
-                    <div className="w-1/3 h-full flex items-center justify-center px-2 py-3">{renderPage(currentPage - 1)}</div>
-                </div>
+                    {windowPages.map((p) => (
+                        <MushafSlide
+                            key={p}
+                            page={p}
+                            offset={p - currentPage}
+                            swipeOffset={swipeOffset}
+                            animate={!isSwiping && !isResetting}
+                            imageStyle={imageFilter}
+                            onLoaded={handleImageLoaded}
+                            onZoomChange={setIsZoomed}
+                        />
+                    ))}
                 </div>
             </main>
 
@@ -495,7 +569,9 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                         </div>
                         <ol className="overflow-y-auto divide-y divide-slate-200 px-4">
                             {!pageData?.verses.length && (
-                                <li className="py-10 text-center text-sm text-slate-500">Memuat terjemahan...</li>
+                                <li className="py-10 text-center text-sm text-slate-500">
+                                    {pageDataLoading ? "Memuat terjemahan..." : "Terjemahan belum bisa dimuat. Periksa koneksi internet."}
+                                </li>
                             )}
                             {pageData?.verses.map((v) => {
                                 const [s, a] = v.verseKey.split(":").map(Number);

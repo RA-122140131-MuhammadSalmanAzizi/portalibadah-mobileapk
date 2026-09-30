@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import {
     BookOpen,
-    Clock,
+    Compass,
     Heart,
     Home,
     X,
@@ -23,11 +23,13 @@ import { Toast } from '@capacitor/toast';
 import { Dialog } from '@capacitor/dialog';
 import { isReaderRoute } from "@/components/BottomNav";
 import LogoMark from "@/components/LogoMark";
+import PrayerIcon from "@/components/icons/PrayerIcon";
 
 const navLinks = [
     { href: "/", label: "Beranda", icon: Home },
     { href: "/quran", label: "Al-Qur'an", icon: BookOpen },
-    { href: "/sholat", label: "Jadwal Sholat", icon: Clock },
+    { href: "/sholat", label: "Jadwal Sholat", icon: PrayerIcon },
+    { href: "/kiblat", label: "Kiblat", icon: Compass },
     { href: "/doa", label: "Doa Harian", icon: Heart },
     { href: "/hadits", label: "Hadits", icon: ScrollText },
     { href: "/about", label: "Tentang", icon: Info },

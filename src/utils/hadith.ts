@@ -32,11 +32,11 @@ export async function getOnlineWisdom(): Promise<Wisdom> {
             // Fetch dari API (Kita ambil 100 hadits pertama dari Bukhari atau Muslim secara acak)
             // Karena API gadingnst support range query. Kita ambil range acak biar variatif.
             // Kitab Bukhari total ~7000. Kita ambil chunk 1-150.
-            const response = await fetch('https://api.hadith.gading.dev/books/bukhari?range=1-150');
+            const response = await fetch('https://hadis-api-id.vercel.app/hadith/bukhari?page=1&limit=150');
             const json = await response.json();
 
-            if (json.data && json.data.hadiths) {
-                hadiths = json.data.hadiths;
+            if (Array.isArray(json.items)) {
+                hadiths = json.items;
                 // Cache it
                 localStorage.setItem('hadith-cache', JSON.stringify(hadiths));
                 localStorage.setItem('hadith-cache-time', Date.now().toString());

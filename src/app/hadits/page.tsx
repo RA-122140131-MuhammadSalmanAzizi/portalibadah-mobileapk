@@ -1,310 +1,261 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, ChevronLeft, ChevronRight, Share2, Book, Bookmark, Sparkles, BookOpen } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
-import { Share } from '@capacitor/share';
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Search, ChevronDown, Copy, Share2, X, Loader2, RefreshCw } from "lucide-react";
+import { Share } from "@capacitor/share";
 
-// Tipe Data
 interface Hadith {
     number: number;
     arab: string;
     id: string;
 }
 
+// api.hadith.gading.dev sudah tidak aktif; diganti hadis-api-id (data sama, CORS terbuka)
+const API = "https://hadis-api-id.vercel.app/hadith";
+const PAGE_SIZE = 30;
+
 const BOOKS = [
-    { id: 'bukhari', label: 'Bukhari', color: 'bg-emerald-500' },
-    { id: 'muslim', label: 'Muslim', color: 'bg-indigo-500' },
-    { id: 'tirmidzi', label: 'Tirmidzi', color: 'bg-violet-500' },
-    { id: 'abu-dawud', label: 'Abu Daud', color: 'bg-sky-500' },
-    { id: 'nasai', label: 'Nasai', color: 'bg-rose-500' },
+    { id: "bukhari", label: "Bukhari", total: 6638 },
+    { id: "muslim", label: "Muslim", total: 4930 },
+    { id: "abu-dawud", label: "Abu Dawud", total: 4419 },
+    { id: "tirmidzi", label: "Tirmidzi", total: 3625 },
+    { id: "nasai", label: "Nasa'i", total: 5364 },
+    { id: "ibnu-majah", label: "Ibnu Majah", total: 4285 },
+    { id: "ahmad", label: "Ahmad", total: 4305 },
+    { id: "malik", label: "Malik", total: 1587 },
+    { id: "darimi", label: "Darimi", total: 2949 },
 ];
 
-const ITEMS_PER_PAGE = 20;
-
 export default function HaditsPage() {
-    // State
-    const [selectedBook, setSelectedBook] = useState('bukhari');
-    const [hadiths, setHadiths] = useState<Hadith[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [favorites, setFavorites] = useState<string[]>([]); // `${book}-${number}`
+    const [book, setBook] = useState(BOOKS[0].id);
+    const [items, setItems] = useState<Hadith[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
+    const [query, setQuery] = useState("");
+    const [jumped, setJumped] = useState<Hadith | null>(null);
+    const [jumpLoading, setJumpLoading] = useState(false);
+    const [expanded, setExpanded] = useState<number | null>(null);
+    const [toast, setToast] = useState<string | null>(null);
+    const sentinel = useRef<HTMLDivElement>(null);
+    const loadingRef = useRef(false);
 
-    // Fetch Data
-    useEffect(() => {
-        async function fetchHadiths() {
+    const bookInfo = BOOKS.find((b) => b.id === book)!;
+
+    const showToast = (msg: string) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 1800);
+    };
+
+    const loadPage = useCallback(
+        async (p: number, reset = false) => {
+            if (loadingRef.current) return;
+            loadingRef.current = true;
             setLoading(true);
-            setHadiths([]);
+            setError(false);
             try {
-                // Fetch range 1-150 agar cukup banyak untuk disearch
-                const res = await fetch(`https://api.hadith.gading.dev/books/${selectedBook}?range=1-150`);
-                const data = await res.json();
-                if (data.data && data.data.hadiths) {
-                    setHadiths(data.data.hadiths);
-                }
+                const res = await fetch(`${API}/${book}?page=${p}&limit=${PAGE_SIZE}`);
+                if (!res.ok) throw new Error(String(res.status));
+                const json = await res.json();
+                const next: Hadith[] = json.items || [];
+                setItems((prev) => (reset ? next : [...prev, ...next]));
+                setPage(p);
+                setHasMore(p < (json.pagination?.totalPages ?? 0));
             } catch (e) {
-                console.error("Failed fetch hadith", e);
+                console.error("Gagal memuat hadits", e);
+                setError(true);
             } finally {
+                loadingRef.current = false;
                 setLoading(false);
             }
-        }
-        fetchHadiths();
-        setCurrentPage(1);
-        setSearchQuery("");
-        setExpandedId(null);
-    }, [selectedBook]);
+        },
+        [book]
+    );
 
-    // Filtering & Pagination
-    const filteredHadiths = useMemo(() => {
-        if (!searchQuery.trim()) return hadiths;
-        
-        const lowerQuery = searchQuery.toLowerCase();
-        return hadiths.filter(h => 
-            h.id.toLowerCase().includes(lowerQuery) || 
-            h.number.toString().includes(lowerQuery)
+    // Ganti kitab: mulai dari awal
+    useEffect(() => {
+        setItems([]);
+        setExpanded(null);
+        setHasMore(true);
+        setQuery("");
+        setJumped(null);
+        loadPage(1, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [book]);
+
+    // Muat halaman berikutnya saat mendekati bawah daftar
+    useEffect(() => {
+        const el = sentinel.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loadingRef.current && !error && !query.trim()) loadPage(page + 1);
+            },
+            { rootMargin: "600px 0px" }
         );
-    }, [hadiths, searchQuery]);
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [page, hasMore, error, query, loadPage]);
 
-    const totalPages = Math.ceil(filteredHadiths.length / ITEMS_PER_PAGE);
-    const paginatedHadiths = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const end = start + ITEMS_PER_PAGE;
-        return filteredHadiths.slice(start, end);
-    }, [filteredHadiths, currentPage]);
+    // Cari nomor: ambil langsung hadits tersebut dari API
+    const q = query.trim();
+    const isNumber = /^\d+$/.test(q);
+    useEffect(() => {
+        setJumped(null);
+        if (!isNumber) return;
+        const n = Number(q);
+        if (n < 1 || n > bookInfo.total) return;
+        const t = setTimeout(async () => {
+            setJumpLoading(true);
+            try {
+                const res = await fetch(`${API}/${book}/${n}`);
+                if (res.ok) {
+                    const h = await res.json();
+                    setJumped({ number: h.number, arab: h.arab, id: h.id });
+                    setExpanded(h.number);
+                }
+            } catch { }
+            setJumpLoading(false);
+        }, 350);
+        return () => clearTimeout(t);
+    }, [q, isNumber, book, bookInfo.total]);
 
-    // Handlers
-    const toggleExpand = (number: number) => {
-        setExpandedId(expandedId === number ? null : number);
-    };
+    const visible = useMemo(() => {
+        if (!q) return items;
+        if (isNumber) return jumped ? [jumped] : [];
+        const lq = q.toLowerCase();
+        return items.filter((h) => h.id.toLowerCase().includes(lq));
+    }, [items, q, isNumber, jumped]);
 
-    const handleSearch = (q: string) => {
-        setSearchQuery(q);
-        setCurrentPage(1);
-        setExpandedId(null);
-    };
+    const hadithText = (h: Hadith) => `${h.arab}\n\n${h.id}\n\n(HR. ${bookInfo.label} No. ${h.number})`;
 
-    const handlePageChange = (p: number) => {
-        setCurrentPage(p);
-        setExpandedId(null);
-        window.scrollTo({ top: 500, behavior: 'smooth' }); // Scroll ke awal list
-    };
-
-    const handleShare = async (e: React.MouseEvent, h: Hadith) => {
-        e.stopPropagation();
-        const bookName = BOOKS.find(b => b.id === selectedBook)?.label;
-        const text = `${h.arab}\n\n"${h.id}"\n(HR. ${bookName} No. ${h.number})`;
-
-        if (Capacitor.isNativePlatform()) {
-            await Share.share({
-                title: `Hadits ${bookName} No. ${h.number}`,
-                text: text + '\n\nvia Portal Ibadah App',
-                dialogTitle: 'Bagikan Hadits',
-            });
-        } else {
-            navigator.clipboard.writeText(text);
-            alert("Teks hadits disalin ke clipboard!");
+    const copyHadith = async (h: Hadith) => {
+        try {
+            await navigator.clipboard.writeText(hadithText(h));
+            showToast("Hadits disalin");
+        } catch {
+            showToast("Gagal menyalin");
         }
     };
 
-    const getBookLabel = () => BOOKS.find(b => b.id === selectedBook)?.label;
+    const shareHadith = async (h: Hadith) => {
+        try {
+            await Share.share({ title: `HR. ${bookInfo.label} No. ${h.number}`, text: hadithText(h) });
+        } catch {
+            copyHadith(h);
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-             {/* Hero Section (Mirip Doa) */}
-             <section data-theme="light" className="relative overflow-hidden bg-white">
-                <div className="absolute inset-0 bg-gradient-doa" />
-                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-                
-                <div className="container-app relative z-10 py-8 lg:py-12">
-                     <div className="max-w-2xl">
-                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm text-white/90 mb-6">
-                            <BookOpen className="w-4 h-4" />
-                            <span>Koleksi Hadits Shahih</span>
-                        </div>
-
-                         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
-                            Hadits {getBookLabel()}
-                        </h1>
-                        <p className="text-white/80 text-base sm:text-lg mb-8">
-                             Pelajari sunnah Nabi SAW melalui ribuan hadits pilihan dari kitab-kitab terpercaya.
-                        </p>
-
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder={`Cari di Hadits ${getBookLabel()}...`}
-                                value={searchQuery}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className="w-full py-4 pl-12 pr-4 text-base bg-white border-0 shadow-xl shadow-indigo-900/10 rounded-2xl transition-all focus:outline-none focus:ring-4 focus:ring-white/20 placeholder:text-slate-400"
-                            />
-                        </div>
-                     </div>
-                </div>
-             </section>
-
-             <section className="container-app py-8">
-                {/* Book Tabs (Category) */}
-                <div className="mb-8 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-                    <div className="flex gap-2 w-max sm:w-auto">
-                        {BOOKS.map((book) => (
+        <div className="container-app max-w-2xl pb-8">
+            {/* Judul + cari + kitab */}
+            <div className="sticky top-16 lg:top-20 z-20 -mx-4 px-4 pt-4 pb-3 bg-white/95 backdrop-blur-lg border-b border-slate-100">
+                <h1 className="text-xl font-bold text-slate-900 mb-3">Hadits</h1>
+                <label className="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 focus-within:border-emerald-500 transition-colors">
+                    <Search className="w-[18px] h-[18px] text-slate-400 shrink-0" />
+                    <input
+                        type="search"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={`Nomor (1-${bookInfo.total}) atau kata kunci...`}
+                        aria-label="Cari hadits"
+                        className="flex-1 min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                    {query && (
+                        <button onClick={() => setQuery("")} aria-label="Hapus pencarian" className="p-1 -mr-1 text-slate-400">
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </label>
+                <div className="flex gap-2 mt-3 -mx-4 px-4 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Kitab hadits">
+                    {BOOKS.map((b) => {
+                        const active = b.id === book;
+                        return (
                             <button
-                                key={book.id}
-                                onClick={() => setSelectedBook(book.id)}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                                    selectedBook === book.id
-                                        ? `${book.color} text-white shadow-lg shadow-indigo-200 transform scale-105`
-                                        : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
-                                }`}
+                                key={b.id}
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => {
+                                    setBook(b.id);
+                                    window.scrollTo({ top: 0 });
+                                }}
+                                className={`shrink-0 h-8 px-3.5 rounded-full text-sm whitespace-nowrap border transition-colors ${active ? "bg-emerald-500 border-emerald-500 text-white font-semibold" : "border-slate-200 text-slate-600"}`}
                             >
-                                {selectedBook === book.id && <Sparkles className="w-4 h-4" />}
-                                {book.label}
+                                {b.label}
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
+            </div>
 
-                {/* Loading State */}
-                {loading ? (
-                    <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 animate-pulse">
-                                <div className="h-6 bg-slate-100 rounded-md w-1/4 mb-4"></div>
-                                <div className="h-4 bg-slate-100 rounded-md w-3/4"></div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <>
-                         {/* Stats */}
-                         <div className="flex items-center justify-between mb-6 px-1">
-                            <p className="text-slate-500 text-sm font-medium">
-                                Menampilkan <span className="text-slate-900 font-bold">{filteredHadiths.length}</span> hadits
-                            </p>
-                        </div>
+            <p className="pt-3 text-xs text-slate-500">
+                {q && !isNumber
+                    ? `${visible.length} hadits cocok dari ${items.length} yang sudah dimuat`
+                    : `HR. ${bookInfo.label} · ${bookInfo.total.toLocaleString("id-ID")} hadits`}
+            </p>
 
-                        {/* List Hadits (Accordion Style) */}
-                        <div className="space-y-4">
-                            {paginatedHadiths.map((h) => (
-                                <div key={h.number} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:border-indigo-100 transition-all duration-300">
-                                    <div
-                                        onClick={() => toggleExpand(h.number)}
-                                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleExpand(h.number)}
-                                        className="w-full text-left p-4 sm:p-5 flex items-start sm:items-center justify-between gap-4 cursor-pointer select-none group"
-                                        role="button"
-                                        tabIndex={0}
-                                    >
-                                        <div className="flex items-start gap-4 flex-1">
-                                            {/* Number Badge */}
-                                            <div className={`w-12 h-12 flex items-center justify-center rounded-xl font-bold text-lg shrink-0 transition-colors ${
-                                                expandedId === h.number 
-                                                ? "bg-indigo-600 text-white shadow-md" 
-                                                : "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600"
-                                            }`}>
-                                                {h.number}
-                                            </div>
-                                            
-                                            {/* Content Snippet */}
-                                            <div className="flex-1 min-w-0 pt-1 sm:pt-0">
-                                                <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1">
-                                                    HR. {getBookLabel()} No. {h.number}
-                                                </h3>
-                                                <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
-                                                    {h.id}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Icons */}
-                                        <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
-                                            <button
-                                                onClick={(e) => handleShare(e, h)}
-                                                className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                                                title="Bagikan"
-                                            >
-                                                <Share2 className="w-4 h-4" />
-                                            </button>
-                                            <div className={`w-9 h-9 flex items-center justify-center rounded-lg transition-transform duration-300 ${expandedId === h.number ? "rotate-180 text-indigo-600" : "text-slate-400"}`}>
-                                                 <ChevronDown className="w-5 h-5" />
-                                            </div>
-                                        </div>
+            <ul className="divide-y divide-slate-100">
+                {visible.map((h) => {
+                    const open = expanded === h.number;
+                    return (
+                        <li key={h.number}>
+                            <button
+                                onClick={() => setExpanded(open ? null : h.number)}
+                                aria-expanded={open}
+                                className="w-full flex items-start gap-3 py-3.5 text-left"
+                            >
+                                <span className="w-12 shrink-0 pt-0.5 text-sm font-semibold text-emerald-600 tabular-nums">No. {h.number}</span>
+                                <p className={`flex-1 min-w-0 text-sm text-slate-700 leading-relaxed ${open ? "" : "line-clamp-2"}`}>{h.id}</p>
+                                <ChevronDown className={`w-4 h-4 mt-1 text-slate-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+                            </button>
+                            {open && (
+                                <div className="pb-5 pl-[60px] animate-fade-in">
+                                    <p className="font-arabic text-xl text-slate-900 text-right" style={{ lineHeight: 2.1 }} lang="ar">
+                                        {h.arab}
+                                    </p>
+                                    <div className="flex items-center gap-1 mt-3 -ml-2">
+                                        <button onClick={() => copyHadith(h)} className="flex items-center gap-1.5 h-9 px-2 text-sm text-slate-600">
+                                            <Copy className="w-4 h-4" />
+                                            Salin
+                                        </button>
+                                        <button onClick={() => shareHadith(h)} className="flex items-center gap-1.5 h-9 px-2 text-sm text-slate-600">
+                                            <Share2 className="w-4 h-4" />
+                                            Bagikan
+                                        </button>
                                     </div>
-
-                                    {/* Expanded Content */}
-                                    {expandedId === h.number && (
-                                        <div className="px-5 pb-6 pt-0 animate-fade-in">
-                                            <div className="h-px bg-slate-100 mb-6 mx-2" />
-                                            
-                                            {/* Arab Text */}
-                                            <div className="p-6 bg-[#f8favg] bg-slate-50/50 rounded-2xl mb-6 border border-slate-100/50">
-                                                <p className="font-arabic text-2xl sm:text-3xl text-slate-800 leading-[2.8rem] text-right" dir="rtl">
-                                                    {h.arab}
-                                                </p>
-                                            </div>
-
-                                            {/* Translation */}
-                                            <div>
-                                                <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                    <Book className="w-3 h-3" />
-                                                    Terjemahan
-                                                </h4>
-                                                <div className="prose prose-sm prose-slate max-w-none text-justify">
-                                                    <p className="text-slate-700 leading-8 text-[15px]">
-                                                        {h.id}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
 
-                         {/* Empty State */}
-                         {filteredHadiths.length === 0 && (
-                            <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 border-dashed">
-                                <div className="mx-auto mb-4 flex items-center justify-center">
-                                    <Search className="w-8 h-8 text-slate-400" />
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-1">
-                                    Tidak ditemukan
-                                </h3>
-                                <p className="text-slate-500 mb-4 max-w-xs mx-auto">
-                                    Coba kata kunci lain atau pilih kitab hadits lainnya.
-                                </p>
-                                <button onClick={() => setSearchQuery("")} className="text-indigo-600 font-bold text-sm hover:underline">
-                                    Hapus Pencarian
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Pagination (Simplified) */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center items-center gap-4 mt-8">
-                                <button
-                                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-                                >
-                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
-                                </button>
-                                <span className="text-sm font-bold text-slate-700">
-                                    Page {currentPage} of {totalPages}
-                                </span>
-                                <button
-                                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-                                >
-                                    <ChevronRight className="w-5 h-5 text-slate-600" />
-                                </button>
-                            </div>
-                        )}
-                    </>
+            {/* Status bawah daftar */}
+            <div ref={sentinel} className="py-6 flex justify-center">
+                {(loading || jumpLoading) && <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" aria-label="Memuat" />}
+                {error && !loading && (
+                    <button onClick={() => loadPage(items.length ? page + 1 : 1, !items.length)} className="flex items-center gap-2 text-sm text-slate-600">
+                        <RefreshCw className="w-4 h-4" />
+                        Gagal memuat. Coba lagi
+                    </button>
                 )}
-             </section>
+                {!loading && !error && q && visible.length === 0 && !jumpLoading && (
+                    <p className="text-sm text-slate-500">
+                        {isNumber ? `Nomor tidak tersedia (1-${bookInfo.total})` : "Tidak ada yang cocok di hadits yang sudah dimuat"}
+                    </p>
+                )}
+            </div>
+
+            {toast && (
+                <div
+                    role="status"
+                    className="fixed left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in"
+                    style={{ bottom: "calc(var(--nav-h) + var(--player-h) + env(safe-area-inset-bottom) + 16px)" }}
+                >
+                    {toast}
+                </div>
+            )}
         </div>
     );
 }

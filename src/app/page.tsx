@@ -5,13 +5,9 @@ import Link from "next/link";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import {
-  ScrollText,
   BookOpen,
-  Clock,
-  Heart,
   MapPin,
   ChevronRight,
-  Compass,
   Bell,
   BellOff,
 } from "lucide-react";
@@ -36,13 +32,6 @@ const ALARM_PRAYERS = ["Imsak", "Subuh", "Terbit", "Dzuhur", "Ashar", "Maghrib",
 const DAILY_AYAT: [number, number][] = [
   [94, 6], [2, 286], [13, 28], [65, 3], [2, 152], [39, 53],
   [3, 139], [2, 186], [29, 69], [2, 153], [65, 2], [94, 5],
-];
-
-const menu = [
-  { href: "/sholat", label: "Jadwal Sholat", icon: Clock },
-  { href: "/kiblat", label: "Kiblat", icon: Compass },
-  { href: "/doa", label: "Doa Harian", icon: Heart },
-  { href: "/hadits", label: "Hadits", icon: ScrollText },
 ];
 
 async function fetchAyat(surah: number, ayat: number): Promise<AyatCard | null> {
@@ -320,20 +309,6 @@ export default function HomePage() {
         </div>
         <ChevronRight className="w-5 h-5 shrink-0" />
       </Link>
-
-      {/* Menu ringkas */}
-      <nav aria-label="Menu ibadah" className="grid grid-cols-4 gap-2">
-        {menu.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-col items-center gap-2 pt-4 pb-3 rounded-2xl bg-slate-50 border border-slate-100 active:bg-slate-100 transition-colors"
-          >
-            <Icon className="w-7 h-7 text-emerald-600" strokeWidth={1.8} />
-            <span className="text-[11px] font-medium text-slate-700 text-center leading-tight px-1">{label}</span>
-          </Link>
-        ))}
-      </nav>
 
       {/* Ayat terakhir dibaca / ayat hari ini */}
       <section>

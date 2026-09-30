@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { BookOpen, Clock, Heart, Home, ScrollText } from "lucide-react";
+import { BookOpen, Compass, Heart, Home, ScrollText } from "lucide-react";
+import PrayerIcon from "@/components/icons/PrayerIcon";
 
 const tabs = [
     { href: "/", label: "Beranda", icon: Home },
     { href: "/quran", label: "Qur'an", icon: BookOpen },
-    { href: "/sholat", label: "Sholat", icon: Clock },
+    { href: "/sholat", label: "Sholat", icon: PrayerIcon },
+    { href: "/kiblat", label: "Kiblat", icon: Compass },
     { href: "/doa", label: "Doa", icon: Heart },
     { href: "/hadits", label: "Hadits", icon: ScrollText },
 ];
@@ -34,7 +36,7 @@ export default function BottomNav() {
             className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-            <ul className="grid grid-cols-5 h-16">
+            <ul className="grid grid-cols-6 h-16">
                 {tabs.map(({ href, label, icon: Icon }) => {
                     const active = href === "/" ? pathname === "/" : pathname?.startsWith(href);
                     return (
@@ -42,7 +44,7 @@ export default function BottomNav() {
                             <Link
                                 href={href}
                                 aria-current={active ? "page" : undefined}
-                                className={`relative h-full flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${active ? "text-emerald-500 font-bold" : "text-slate-500 font-medium active:text-slate-700"}`}
+                                className={`relative h-full flex flex-col items-center justify-center gap-1 text-[10.5px] transition-colors ${active ? "text-emerald-500 font-bold" : "text-slate-500 font-medium active:text-slate-700"}`}
                             >
                                 {/* Garis penanda tab aktif */}
                                 <span

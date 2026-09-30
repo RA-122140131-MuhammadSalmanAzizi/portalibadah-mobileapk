@@ -161,6 +161,8 @@ export interface Doa {
     ayat: string;
     latin: string;
     artinya: string;
+    grup?: string;
+    sumber?: string;
 }
 
 // API Functions
@@ -266,15 +268,29 @@ export async function getPrayerTimes(cityId: string, date: string): Promise<Pray
 
 // Fetch all Doas
 export async function getAllDoas(): Promise<Doa[]> {
+    // Sumber utama: equran.id (227 doa, berkelompok, dengan rujukan hadits)
     try {
-        const response = await fetch(API_URLS.DOA, {
-            next: { revalidate: 86400 },
-        });
+        const res = await fetch("https://equran.id/api/doa", { next: { revalidate: 86400 } });
+        if (!res.ok) throw new Error("equran doa failed");
+        const json = await res.json();
+        const items: Doa[] = (json.data || []).map((d: any) => ({
+            id: Number(d.id),
+            doa: d.nama,
+            ayat: d.ar,
+            latin: d.tr,
+            artinya: d.idn,
+            grup: d.grup,
+            sumber: d.tentang,
+        }));
+        if (items.length) return items;
+    } catch (error) {
+        console.error("Error fetching doas from equran:", error);
+    }
 
-        if (!response.ok) {
-            throw new Error("Failed to fetch doas");
-        }
-
+    // Cadangan: API lama
+    try {
+        const response = await fetch(API_URLS.DOA, { next: { revalidate: 86400 } });
+        if (!response.ok) throw new Error("Failed to fetch doas");
         const data = await response.json();
         return data || [];
     } catch (error) {

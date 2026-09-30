@@ -385,6 +385,16 @@ nextjs-portal,
     animation: pulseSoft 2s ease-in-out infinite;
   }
 
+  /* Sembunyikan scrollbar pada baris chip yang digeser horizontal */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Line clamp */
   .line-clamp-1 {
     display: -webkit-box;
