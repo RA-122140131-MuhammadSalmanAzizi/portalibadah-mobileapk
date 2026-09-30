@@ -107,7 +107,7 @@ export default function InstallPrompt() {
                         <X size={20} />
                     </button>
                     <div className="flex items-center gap-4">
-                        <LogoMark className="w-12 h-12 bg-white" label="" />
+                        <LogoMark className="w-14 h-14 rounded-2xl shadow-lg" label="" />
                         <div>
                             <h2 className="text-xl font-bold">Install Portal Ibadah</h2>
                             <p className="text-white/80 text-sm">Akses lebih cepat dari layar utama</p>

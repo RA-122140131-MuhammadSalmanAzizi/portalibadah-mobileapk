@@ -92,7 +92,7 @@ export default function Navbar() {
                     <nav className="flex items-center justify-between h-16 lg:h-20">
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-3 group">
-                            <LogoMark className="w-8 h-8 lg:w-9 lg:h-9 bg-emerald-600" />
+                            <LogoMark className="w-9 h-9 lg:w-10 lg:h-10" />
                             <div className="block">
                                 <h1 className={`text-lg font-bold ${getTextStyle()}`}>
                                     Portal Ibadah

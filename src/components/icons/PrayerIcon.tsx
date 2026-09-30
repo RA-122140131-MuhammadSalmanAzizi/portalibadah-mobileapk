@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import type { LucideProps } from "lucide-react";
 
 /**
- * Ikon waktu sholat: jam di atas sajadah (garis 24x24 bergaya lucide).
+ * Ikon waktu sholat: jam di atas sajadah sederhana (garis 24x24 bergaya lucide).
  * Lucide belum punya ikon sholat, jadi dibuat sendiri dengan props yang sama.
  */
 const PrayerIcon = forwardRef<SVGSVGElement, LucideProps>(function PrayerIcon(
@@ -26,18 +26,11 @@ const PrayerIcon = forwardRef<SVGSVGElement, LucideProps>(function PrayerIcon(
             {...rest}
         >
             {/* Jam */}
-            <circle cx="12" cy="5.2" r="3.4" />
-            <path d="M12 3.6v1.8l1.2.9" />
-            {/* Sajadah bergelombang */}
-            <path
-                d="M4.5 11.2c2.5-.9 5 .9 7.5 0s5-.9 7.5 0v9.3c-2.5-.9-5 .9-7.5 0s-5-.9-7.5 0z"
-                fill={fill}
-                fillOpacity={fillOpacity}
-            />
-            {/* Hiasan tengah sajadah */}
-            <rect x="8.3" y="14.1" width="7.4" height="3.6" rx="1" />
-            {/* Rumbai */}
-            <path d="M2.5 14h2M2.5 18h2M19.5 14h2M19.5 18h2" />
+            <circle cx="12" cy="8.5" r="6" fill={fill} fillOpacity={fillOpacity} />
+            <path d="M12 5.5v3l2 1.5" />
+            {/* Sajadah sederhana dengan rumbai */}
+            <rect x="4.5" y="18.5" width="15" height="3" rx="0.8" />
+            <path d="M2 20h2.5M19.5 20H22" />
         </svg>
     );
 });

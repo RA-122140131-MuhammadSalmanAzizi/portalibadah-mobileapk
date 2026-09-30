@@ -157,7 +157,7 @@ export default function DoaClient({ initialDoas }: DoaClientProps) {
 
                             {open && (
                                 <div className="pb-5 animate-fade-in">
-                                    <p className="font-arabic text-2xl text-slate-900 text-right" style={{ lineHeight: 2.1 }} lang="ar">
+                                    <p className="font-arabic text-2xl text-slate-900 text-right" style={{ lineHeight: 2.5 }} lang="ar">
                                         {d.ayat}
                                     </p>
                                     <p className="mt-3 text-sm italic text-emerald-700 leading-relaxed">{d.latin}</p>

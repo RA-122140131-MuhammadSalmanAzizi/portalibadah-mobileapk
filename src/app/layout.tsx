@@ -12,6 +12,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import BottomNav from "@/components/BottomNav";
 import MiniPlayer from "@/components/MiniPlayer";
 import { themeInitScript } from "@/lib/theme";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 
 export const metadata: Metadata = {
@@ -63,6 +64,7 @@ export default function RootLayout({
         <LocationProvider>
           <AudioProvider>
             <AppUpdater />
+            <ServiceWorkerRegister />
             <AndroidBackHandler />
             <NotificationManager />
             <GlobalAudioNavigator />

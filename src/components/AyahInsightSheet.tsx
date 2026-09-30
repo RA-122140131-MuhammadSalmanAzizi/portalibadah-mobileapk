@@ -86,7 +86,7 @@ export default function AyahInsightSheet({ ayah, onClose }: { ayah: InsightAyah;
                 </div>
 
                 <div className="overflow-y-auto px-4 py-4 space-y-4">
-                    <p className="font-arabic text-2xl text-right" style={{ lineHeight: 2 }} lang="ar">{ayah.arab}</p>
+                    <p className="font-arabic text-2xl text-right" style={{ lineHeight: 2.5 }} lang="ar">{ayah.arab}</p>
                     <p className="text-slate-700 leading-relaxed">{ayah.arti}</p>
 
                     <div className="pt-4 border-t border-slate-200">

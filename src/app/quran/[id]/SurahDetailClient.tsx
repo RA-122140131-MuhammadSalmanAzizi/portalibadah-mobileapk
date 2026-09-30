@@ -54,6 +54,13 @@ const PLAYBACK_MODES: { id: PlaybackMode; label: string; icon: typeof Play }[] =
 ];
 
 const ARAB_SIZES = [24, 28, 32, 36, 42, 48];
+
+// Font teks Arab. LPMQ = standar Mushaf Indonesia (kasrah di bawah huruf saat bertasydid)
+type ArabFont = "lpmq" | "amiri";
+const ARAB_FONTS: { id: ArabFont; label: string; family: string }[] = [
+    { id: "lpmq", label: "LPMQ (Indonesia)", family: "'LPMQ Isep Misbah', 'Amiri', serif" },
+    { id: "amiri", label: "Amiri (Naskh)", family: "'Amiri', serif" },
+];
 const DEFAULT_ARAB_SIZE = 32;
 
 const RECITER = "Mishary Rashid Alafasy";
@@ -77,6 +84,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
     // Pengaturan tampilan
     const [theme, setTheme] = useState<ReaderTheme>("dark");
     const [arabSize, setArabSize] = useState(DEFAULT_ARAB_SIZE);
+    const [arabFont, setArabFont] = useState<ArabFont>("lpmq");
     const [showLatin, setShowLatin] = useState(true);
     const [showTranslation, setShowTranslation] = useState(true);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -107,6 +115,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
             // Belum pernah memilih: default Sepia (nyaman untuk membaca lama)
             setTheme("yellow");
         }
+        if (localStorage.getItem('quran-arab-font') === "amiri") setArabFont("amiri");
         const size = Number(localStorage.getItem('quran-arab-size'));
         if (ARAB_SIZES.includes(size)) setArabSize(size);
         setShowLatin(readBool('quran-show-latin', true));
@@ -116,6 +125,10 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
     const changeTheme = (t: ReaderTheme) => {
         setTheme(t);
         localStorage.setItem('quran-theme', t);
+    };
+    const changeArabFont = (f: ArabFont) => {
+        setArabFont(f);
+        localStorage.setItem('quran-arab-font', f);
     };
     const changeArabSize = (delta: number) => {
         const idx = Math.max(0, Math.min(ARAB_SIZES.length - 1, ARAB_SIZES.indexOf(arabSize) + delta));
@@ -183,8 +196,47 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
     };
 
     // Putar mulai dari ayat tertentu lalu lanjut ke ayat berikutnya
+    // ---- Ulangi satu ayat (untuk menghafal) ----
+    const [repeatAyat, setRepeatAyat] = useState<number | null>(null);
+    const modeBeforeRepeat = useRef<PlaybackMode | null>(null);
+
+    const endRepeat = useCallback(() => {
+        if (modeBeforeRepeat.current) setPlaybackMode(modeBeforeRepeat.current);
+        modeBeforeRepeat.current = null;
+        setRepeatAyat(null);
+    }, [setPlaybackMode]);
+
+    const toggleRepeatAyat = (nomorAyat: number) => {
+        if (repeatAyat === nomorAyat) {
+            // Matikan pengulangan; ayat yang sedang diputar selesai lalu berhenti
+            endRepeat();
+            showToast(`Ulangi ayat ${nomorAyat} dimatikan`);
+            return;
+        }
+        const a = surah.ayat.find((x) => x.nomorAyat === nomorAyat);
+        const url = a && (a.audio?.['05'] || Object.values(a.audio || {})[0]);
+        if (!url) return;
+        if (!modeBeforeRepeat.current) modeBeforeRepeat.current = playbackMode;
+        setPlaybackMode("repeat");
+        setRepeatAyat(nomorAyat);
+        playQueue([{
+            url,
+            title: `QS. ${surah.namaLatin}: ${nomorAyat} (diulang)`,
+            artist: RECITER,
+            album: "Portal Ibadah",
+            meta: { surahId: surah.nomor, ayat: nomorAyat, repeat: true },
+        }], 0);
+        showToast(`Ayat ${nomorAyat} diulang terus`);
+    };
+
+    // Audio lain diputar atau dihentikan: akhiri mode ulangi dan kembalikan pengaturan sebelumnya
+    useEffect(() => {
+        if (repeatAyat === null) return;
+        if (!currentTrack || !currentTrack.meta?.repeat || currentTrack.meta?.ayat !== repeatAyat) endRepeat();
+    }, [currentTrack, repeatAyat, endRepeat]);
+
     const playFromAyat = (nomorAyat: number) => {
-        if (playingAyat === nomorAyat) {
+        if (playingAyat === nomorAyat && repeatAyat === null) {
             toggle();
             return;
         }
@@ -298,7 +350,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                     .sort((a, b) => a - b);
                 if (visible.length) setCurrentAyat(visible[0]);
             },
-            { rootMargin: "-112px 0px -60% 0px" }
+            { rootMargin: "-160px 0px -55% 0px" }
         );
         document.querySelectorAll('[data-ayat]').forEach((el) => observer.observe(el));
         return () => observer.disconnect();
@@ -340,6 +392,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         if (a) setInsight({ surah: surah.nomor, surahName: surah.namaLatin, ayat: n, arab: a.teksArab, arti: a.teksIndonesia });
     };
 
+    const arabFamily = ARAB_FONTS.find((f) => f.id === arabFont)?.family;
     const dataTheme = READER_THEMES.find((t) => t.id === theme)?.dataTheme ?? "dark";
     const showBismillah = surah.nomor !== 1 && surah.nomor !== 9;
     const iconBtn = "w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors";
@@ -393,6 +446,22 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                             Per Halaman
                         </button>
                     </div>
+                    {/* Lompat ke ayat: ikut menempel di header */}
+                    <form onSubmit={handleJump} className="mt-2 flex items-center gap-2 h-9 pl-3 pr-1 rounded-full bg-slate-50 border border-slate-200">
+                        <CornerDownRight className="w-4 h-4 text-slate-400 shrink-0" />
+                        <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={surah.jumlahAyat}
+                            value={jumpValue}
+                            onChange={(e) => setJumpValue(e.target.value)}
+                            placeholder={`Lompat ke ayat (1-${surah.jumlahAyat})`}
+                            aria-label="Nomor ayat"
+                            className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                        />
+                        <button type="submit" className="h-7 px-4 rounded-full bg-emerald-500 text-white text-xs font-semibold">Buka</button>
+                    </form>
                 </div>
             </header>
 
@@ -407,27 +476,9 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                     <p className="font-arabic text-4xl text-slate-900 shrink-0" lang="ar">{surah.nama}</p>
                 </section>
 
-                {/* Lompat ke ayat + mode audio */}
-                <div className="py-3 flex items-center gap-2">
-                    <form onSubmit={handleJump} className="flex-1 flex items-center gap-2 h-10 pl-3 pr-1 rounded-full bg-slate-50 border border-slate-200">
-                        <CornerDownRight className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            max={surah.jumlahAyat}
-                            value={jumpValue}
-                            onChange={(e) => setJumpValue(e.target.value)}
-                            placeholder={`Lompat ke ayat (1-${surah.jumlahAyat})`}
-                            aria-label="Nomor ayat"
-                            className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
-                        />
-                        <button type="submit" className="h-8 px-4 rounded-full bg-emerald-500 text-white text-xs font-semibold">Buka</button>
-                    </form>
-                </div>
 
                 {showBismillah && (
-                    <p className="font-arabic text-center py-4 text-slate-900" style={{ fontSize: Math.round(arabSize * 0.9) }} lang="ar">
+                    <p className="font-arabic text-center py-4 text-slate-900" style={{ fontSize: Math.round(arabSize * 0.9), fontFamily: arabFamily }} lang="ar">
                         بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
                     </p>
                 )}
@@ -443,7 +494,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                                 key={n}
                                 id={`ayat-${n}`}
                                 data-ayat={n}
-                                className={`scroll-mt-28 py-5 transition-colors ${isActive ? 'bg-emerald-500/10 -mx-4 px-4 rounded-2xl border-y-0' : ''}`}
+                                className={`scroll-mt-40 py-5 transition-colors ${isActive ? 'bg-emerald-500/10 -mx-4 px-4 rounded-2xl border-y-0' : ''}`}
                             >
                                 {/* Nomor + aksi: selalu terlihat */}
                                 <div className="flex items-center gap-1 mb-4">
@@ -481,7 +532,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
 
                                 <p
                                     className="font-arabic text-right text-slate-900"
-                                    style={{ fontSize: arabSize, lineHeight: 2.1 }}
+                                    style={{ fontSize: arabSize, lineHeight: 2.5, paddingTop: "0.2em", fontFamily: arabFamily }}
                                     lang="ar"
                                 >
                                     {verse.teksArab}
@@ -500,28 +551,29 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
 
                 {/* Surah sebelumnya / berikutnya */}
                 <nav aria-label="Surah lain" className="grid grid-cols-2 gap-3 pt-6">
-                    {surah.suratSebelumnya ? (
-                        <Link
-                            href={`/quran/${surah.suratSebelumnya.nomor}`}
-                            className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-200"
-                        >
-                            <ChevronLeft className="w-5 h-5 text-slate-400 shrink-0" />
-                            <div className="min-w-0">
-                                <p className="text-xs text-slate-500">Sebelumnya</p>
-                                <p className="font-medium truncate">{surah.suratSebelumnya.namaLatin}</p>
-                            </div>
-                        </Link>
-                    ) : <div />}
+                    {/* Kiri = selanjutnya, kanan = sebelumnya (arah baca mushaf) */}
                     {surah.suratSelanjutnya ? (
                         <Link
                             href={`/quran/${surah.suratSelanjutnya.nomor}`}
-                            className="flex items-center justify-end gap-2 p-3 rounded-2xl bg-emerald-500 text-white text-right"
+                            className="flex items-center gap-2 p-3 rounded-2xl bg-emerald-500 text-white"
                         >
+                            <ChevronLeft className="w-5 h-5 shrink-0" />
                             <div className="min-w-0">
                                 <p className="text-xs opacity-80">Selanjutnya</p>
                                 <p className="font-medium truncate">{surah.suratSelanjutnya.namaLatin}</p>
                             </div>
-                            <ChevronRight className="w-5 h-5 shrink-0" />
+                        </Link>
+                    ) : <div />}
+                    {surah.suratSebelumnya ? (
+                        <Link
+                            href={`/quran/${surah.suratSebelumnya.nomor}`}
+                            className="flex items-center justify-end gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-right"
+                        >
+                            <div className="min-w-0">
+                                <p className="text-xs text-slate-500">Sebelumnya</p>
+                                <p className="font-medium truncate">{surah.suratSebelumnya.namaLatin}</p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
                         </Link>
                     ) : <div />}
                 </nav>
@@ -553,10 +605,29 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                             className="flex-1 min-w-0 text-left"
                         >
                             <p className="text-sm font-semibold truncate">
-                                {playingAyat ? `Ayat ${playingAyat}` : `Surah ${surah.namaLatin}`}
+                                {playingAyat ? `Ayat ${playingAyat}${repeatAyat === playingAyat ? " \u00b7 diulang" : ""}` : `Surah ${surah.namaLatin}`}
                             </p>
                             <p className="text-xs text-slate-500 truncate">{RECITER}</p>
                         </button>
+                        {/* Ulangi: ayat yang sedang diputar, atau seluruh surah bila memutar murottal penuh */}
+                        {(() => {
+                            const repeating = playingAyat ? repeatAyat === playingAyat : playbackMode === "repeat";
+                            return (
+                                <button
+                                    onClick={() => {
+                                        if (playingAyat) return toggleRepeatAyat(playingAyat);
+                                        setPlaybackMode(repeating ? "once" : "repeat");
+                                        showToast(repeating ? "Ulangi surah dimatikan" : `Surah ${surah.namaLatin} diulang terus`);
+                                    }}
+                                    aria-pressed={repeating}
+                                    aria-label={playingAyat ? (repeating ? "Hentikan ulangi ayat" : "Ulangi ayat ini") : (repeating ? "Hentikan ulangi surah" : "Ulangi surah ini")}
+                                    className={`h-11 px-2.5 shrink-0 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-colors ${repeating ? "bg-emerald-500/15 text-emerald-600" : "text-slate-500"}`}
+                                >
+                                    <Repeat1 className="w-[18px] h-[18px]" />
+                                    <span className="text-[10px] font-semibold leading-none">{playingAyat ? "Ulangi ayat" : "Ulangi"}</span>
+                                </button>
+                            );
+                        })()}
                         <button onClick={stop} aria-label="Hentikan audio" className={iconBtn}>
                             <X className="w-5 h-5" />
                         </button>
@@ -598,6 +669,21 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                                 ))}
                             </div>
 
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Gaya huruf Arab</p>
+                            <div className="grid grid-cols-2 gap-2 mb-6">
+                                {ARAB_FONTS.map((f) => (
+                                    <button
+                                        key={f.id}
+                                        onClick={() => changeArabFont(f.id)}
+                                        aria-pressed={arabFont === f.id}
+                                        className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 ${arabFont === f.id ? "border-emerald-500" : "border-slate-200"}`}
+                                    >
+                                        <span className="text-2xl text-slate-900" style={{ fontFamily: f.family, lineHeight: 1.8 }} lang="ar">رَبِّ</span>
+                                        <span className="text-xs font-medium text-slate-600">{f.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+
                             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Ukuran huruf Arab</p>
                             <div className="flex items-center gap-3 mb-2">
                                 <button
@@ -622,7 +708,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                                     A+
                                 </button>
                             </div>
-                            <p className="font-arabic text-right mb-6 text-slate-900" style={{ fontSize: arabSize }} lang="ar">
+                            <p className="font-arabic text-right mb-6 text-slate-900" style={{ fontSize: arabSize, fontFamily: arabFamily }} lang="ar">
                                 الْحَمْدُ لِلّٰهِ رَبِّ الْعٰلَمِيْنَ
                             </p>
 

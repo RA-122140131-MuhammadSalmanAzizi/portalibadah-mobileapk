@@ -19,7 +19,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        arabic: ['Amiri', 'serif'],
+        arabic: ['"LPMQ Isep Misbah"', 'Amiri', 'serif'],
       },
       colors: {
         // "white" = warna permukaan dasar halaman (bukan selalu putih)

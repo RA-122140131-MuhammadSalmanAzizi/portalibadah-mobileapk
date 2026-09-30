@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { City, getAllCities } from "@/lib/api";
+import { matchCityFromAddress, shortAddress, OsmAddress } from "@/lib/location-match";
 import { Dialog } from '@capacitor/dialog';
 import { NativeSettings, AndroidSettings, IOSSettings } from 'capacitor-native-settings';
 import { Capacitor } from '@capacitor/core';
@@ -89,35 +90,44 @@ export function LocationProvider({ children }: { children: ReactNode }) {
                 try {
                     const { latitude, longitude } = position.coords;
 
-                    // Reverse Geocoding via Nominatim (Free, no key)
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                    // Reverse geocoding (OpenStreetMap Nominatim, gratis tanpa key)
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&accept-language=id&lat=${latitude}&lon=${longitude}`
+                    );
                     const data = await res.json();
+                    const address: OsmAddress | undefined = data?.address;
 
-                    if (data && data.address) {
-                        const rawCity = data.address.city || data.address.town || data.address.village || data.address.county || "";
-                        const cleanCity = rawCity.replace(/(Kota|Kabupaten)\s+/i, '').trim();
+                    if (!address) {
+                        await Dialog.alert({ title: 'Gagal', message: 'Alamat lokasi Anda belum bisa dibaca. Coba lagi atau pilih kota secara manual.' });
+                        return;
+                    }
 
-                        if (cleanCity) {
-                            const { searchCities } = await import("@/lib/api");
-                            const searchResults = await searchCities(cleanCity);
-
-                            if (searchResults && searchResults.length > 0) {
-                                handleSetCity(searchResults[0]);
-                                await Dialog.alert({
-                                    title: 'Lokasi Terdeteksi',
-                                    message: `Lokasi Anda: ${searchResults[0].lokasi}`,
-                                });
-                            } else {
-                                await Dialog.alert({
-                                    title: 'Lokasi Tidak Ditemukan',
-                                    message: `Kami mendeteksi "${cleanCity}" namun tidak ada dalam database jadwal sholat kami.`,
-                                });
-                            }
-                        } else {
-                            await Dialog.alert({ title: 'Gagal', message: 'Gagal mendeteksi nama kota.' });
+                    // Pastikan memakai daftar kota lengkap (bukan daftar cadangan 10 kota)
+                    let list = cities;
+                    if (list.length < 100) {
+                        const full = await getAllCities();
+                        if (full.length > list.length) {
+                            list = full;
+                            setCities(full);
                         }
+                    }
+
+                    const match = matchCityFromAddress(address, list);
+                    const alamat = shortAddress(address) || data.display_name;
+
+                    if (match) {
+                        handleSetCity(match.city);
+                        await Dialog.alert({
+                            title: 'Lokasi Terdeteksi',
+                            message:
+                                `Alamat: ${alamat}\n\nJadwal sholat memakai ${match.city.lokasi}` +
+                                (match.via === 'provinsi' ? ' (kota terdekat yang tersedia untuk wilayah Anda).' : '.'),
+                        });
                     } else {
-                        await Dialog.alert({ title: 'Gagal', message: 'Gagal mendapatkan informasi lokasi.' });
+                        await Dialog.alert({
+                            title: 'Lokasi Terdeteksi',
+                            message: `Alamat: ${alamat}\n\nKota untuk wilayah ini belum bisa ditentukan otomatis. Jadwal tetap memakai ${selectedCity.lokasi}; Anda bisa memilih kota lain secara manual.`,
+                        });
                     }
                 } catch (error) {
                     console.error("Error detecting location:", error);

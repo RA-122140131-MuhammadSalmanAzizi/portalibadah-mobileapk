@@ -27,6 +27,7 @@ import { QURAN_CHAPTERS, getSurahsByPage, setReadMode } from "@/lib/quran-data";
 import { JUZ_STARTS } from "@/lib/juz";
 import { useAudio } from "@/contexts/AudioContext";
 import AyahNumber from "@/components/AyahNumber";
+import LogoLoader from "@/components/LogoLoader";
 import AyahInsightSheet, { InsightAyah } from "@/components/AyahInsightSheet";
 
 interface QuranPageClientProps {
@@ -61,7 +62,18 @@ const WINDOW = 2;
 const juzOfPage = (p: number) => [...JUZ_STARTS].reverse().find((j) => p >= j.page)?.juz ?? 1;
 const titleOfPage = (p: number) => getSurahsByPage(p)[0]?.name_simple ?? "Al-Qur'an";
 
-const pageImageUrl = (p: number) => `https://media.qurankemenag.net/khat2/QK_${p.toString().padStart(3, "0")}.webp`;
+// Gambar mushaf (tata letak Madinah 604 halaman). Utama: Kemenag; cadangan: King Saud University.
+type ImageSource = "kemenag" | "ksu";
+const IMAGE_URL: Record<ImageSource, (p: number) => string> = {
+    kemenag: (p) => `https://media.qurankemenag.net/khat2/QK_${p.toString().padStart(3, "0")}.webp`,
+    ksu: (p) => `https://quran.ksu.edu.sa/png_big/${p}.png`,
+};
+// Batas tunggu sebelum pindah ke sumber cadangan
+const SOURCE_TIMEOUT_MS = 4000;
+// Sumber per halaman; bila sumber utama pernah gagal di sesi ini, halaman berikutnya langsung pakai cadangan
+const pageSource = new Map<number, ImageSource>();
+let primaryDown = false;
+const sourceOf = (p: number): ImageSource => pageSource.get(p) ?? (primaryDown ? "ksu" : "kemenag");
 const cleanTranslation = (text: string) => text.replace(/<sup[^>]*>.*?<\/sup>/g, "").replace(/<[^>]+>/g, "").trim();
 const surahName = (id: number) => QURAN_CHAPTERS.find((c) => c.id === id)?.name_simple ?? `Surah ${id}`;
 
@@ -75,7 +87,10 @@ function MushafSlide({
     swipeOffset,
     animate,
     imageStyle,
+    enabled,
+    source,
     onLoaded,
+    onFailed,
     onZoomChange,
 }: {
     page: number;
@@ -83,9 +98,23 @@ function MushafSlide({
     swipeOffset: number;
     animate: boolean;
     imageStyle: React.CSSProperties;
+    // Halaman tetangga baru diunduh setelah halaman aktif tampil
+    enabled: boolean;
+    source: ImageSource;
     onLoaded: (page: number) => void;
+    onFailed: (page: number, source: ImageSource) => void;
     onZoomChange: (zoomed: boolean) => void;
 }) {
+    const [loaded, setLoaded] = useState(false);
+
+    // Sumber utama lambat/gagal: minta pindah ke cadangan
+    useEffect(() => {
+        setLoaded(false);
+        if (!enabled || source !== "kemenag") return;
+        const t = setTimeout(() => onFailed(page, source), SOURCE_TIMEOUT_MS);
+        return () => clearTimeout(t);
+    }, [enabled, source, page, onFailed]);
+
     const isCurrent = offset === 0;
     const ref = useRef<ReactZoomPanPinchContentRef>(null);
     const [zoomed, setZoomed] = useState(false);
@@ -125,16 +154,22 @@ function MushafSlide({
                     contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 8px" }}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={pageImageUrl(page)}
+                    {enabled && <img
+                        key={source}
+                        src={IMAGE_URL[source](page)}
                         alt={isCurrent ? `Mushaf halaman ${page}` : ""}
                         draggable={false}
                         decoding="async"
                         fetchPriority={isCurrent ? "high" : "low"}
-                        onLoad={() => onLoaded(page)}
+                        onLoad={() => {
+                            if (loaded) return;
+                            setLoaded(true);
+                            onLoaded(page);
+                        }}
+                        onError={() => onFailed(page, source)}
                         className="max-h-full max-w-full w-auto h-auto object-contain"
                         style={imageStyle}
-                    />
+                    />}
                 </TransformComponent>
             </TransformWrapper>
         </div>
@@ -226,6 +261,14 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
         const t = setTimeout(() => setShowSpinner(true), 300);
         return () => clearTimeout(t);
     }, [currentLoaded]);
+
+    const [, forceSourceRefresh] = useState(0);
+    const handleImageFailed = useCallback((p: number, src: ImageSource) => {
+        if (loadedImages.has(p) || src !== "kemenag") return;
+        primaryDown = true;
+        pageSource.set(p, "ksu");
+        forceSourceRefresh((n) => n + 1);
+    }, []);
 
     const handleImageLoaded = useCallback((p: number) => {
         loadedImages.add(p);
@@ -496,7 +539,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             >
                 {showSpinner && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                        <LogoLoader size={56} label="Memuat halaman" />
                     </div>
                 )}
                 <div className="relative h-full overflow-hidden">
@@ -508,7 +551,10 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                             swipeOffset={swipeOffset}
                             animate={!isSwiping && !isResetting}
                             imageStyle={imageFilter}
+                            enabled={p === currentPage || currentLoaded}
+                            source={sourceOf(p)}
                             onLoaded={handleImageLoaded}
+                            onFailed={handleImageFailed}
                             onZoomChange={setIsZoomed}
                         />
                     ))}

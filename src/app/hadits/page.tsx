@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Search, ChevronDown, Copy, Share2, X, Loader2, RefreshCw } from "lucide-react";
 import { Share } from "@capacitor/share";
+import LogoLoader from "@/components/LogoLoader";
 
 interface Hadith {
     number: number;
@@ -211,7 +212,7 @@ export default function HaditsPage() {
                             </button>
                             {open && (
                                 <div className="pb-5 pl-[60px] animate-fade-in">
-                                    <p className="font-arabic text-xl text-slate-900 text-right" style={{ lineHeight: 2.1 }} lang="ar">
+                                    <p className="font-arabic text-xl text-slate-900 text-right" style={{ lineHeight: 2.5 }} lang="ar">
                                         {h.arab}
                                     </p>
                                     <div className="flex items-center gap-1 mt-3 -ml-2">
@@ -233,7 +234,7 @@ export default function HaditsPage() {
 
             {/* Status bawah daftar */}
             <div ref={sentinel} className="py-6 flex justify-center">
-                {(loading || jumpLoading) && <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" aria-label="Memuat" />}
+                {(loading || jumpLoading) && <LogoLoader size={40} />}
                 {error && !loading && (
                     <button onClick={() => loadPage(items.length ? page + 1 : 1, !items.length)} className="flex items-center gap-2 text-sm text-slate-600">
                         <RefreshCw className="w-4 h-4" />

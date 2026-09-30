@@ -238,9 +238,15 @@ export default function HomePage() {
               onClick={handleAlarmToggle}
               aria-pressed={allAlarmsOn}
               aria-label={allAlarmsOn ? "Matikan semua alarm sholat" : "Nyalakan semua alarm sholat"}
-              className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${allAlarmsOn ? 'bg-emerald-200 text-emerald-950' : 'bg-white/10 text-white'}`}
+              className="flex items-center gap-2 h-9 pl-3 pr-3.5 rounded-full bg-black/25 text-white text-xs font-semibold shrink-0 backdrop-blur-sm"
             >
-              {allAlarmsOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+              {/* Lampu neon: hijau menyala saat alarm aktif */}
+              <span
+                aria-hidden
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${allAlarmsOn ? 'bg-[#39ff14] shadow-[0_0_6px_#39ff14,0_0_14px_#39ff14] animate-pulse' : 'bg-white/30'}`}
+              />
+              {allAlarmsOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4 opacity-70" />}
+              {allAlarmsOn ? "Alarm aktif" : "Alarm mati"}
             </button>
           </div>
 
@@ -323,7 +329,7 @@ export default function HomePage() {
           <Link href={ayatHref} className="block p-4 rounded-2xl bg-slate-50 border border-slate-100 active:bg-slate-100 transition-colors">
             <div className="flex items-start gap-3">
               <AyahNumber number={ayatCard.ayat} size={34} className="mt-1" />
-              <p className="flex-1 font-arabic text-2xl text-slate-900 line-clamp-3" style={{ lineHeight: 2 }} lang="ar">
+              <p className="flex-1 font-arabic text-2xl text-slate-900 line-clamp-3" style={{ lineHeight: 2.4 }} lang="ar">
                 {ayatCard.arab}
               </p>
             </div>

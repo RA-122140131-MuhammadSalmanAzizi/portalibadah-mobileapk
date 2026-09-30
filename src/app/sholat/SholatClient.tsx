@@ -6,7 +6,10 @@ import {
     Clock,
     MapPin,
     Sun,
+    SunDim,
+    CloudSun,
     Moon,
+    MoonStar,
     Sunrise,
     Sunset,
     ChevronDown,
@@ -39,7 +42,7 @@ const prayerInfo = [
     {
         key: "imsak" as const,
         name: "Imsak",
-        icon: Moon,
+        icon: MoonStar,
         gradient: "from-indigo-500 to-purple-600",
     },
     {
@@ -51,7 +54,7 @@ const prayerInfo = [
     {
         key: "terbit" as const,
         name: "Terbit",
-        icon: Sun,
+        icon: SunDim,
         gradient: "from-amber-400 to-orange-500",
     },
     {
@@ -63,7 +66,7 @@ const prayerInfo = [
     {
         key: "ashar" as const,
         name: "Ashar",
-        icon: Sunset,
+        icon: CloudSun,
         gradient: "from-orange-400 to-rose-500",
     },
     {
