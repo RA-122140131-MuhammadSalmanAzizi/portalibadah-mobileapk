@@ -5,6 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { useLocation } from '@/contexts/LocationContext';
 import { Capacitor } from '@capacitor/core';
 import { getPrayerTimes, formatDateForAPI } from '@/lib/api';
+import { ADZAN_SOUND, ADZAN_CHANNEL_ID, ADZAN_CHANNEL_NAME, OLD_ADZAN_CHANNEL_IDS } from '@/lib/adzan';
 
 export default function NotificationManager() {
     const { selectedCity } = useLocation();
@@ -38,15 +39,23 @@ export default function NotificationManager() {
     const createChannel = async () => {
         if (Capacitor.getPlatform() === 'web') return;
         try {
+            // Hapus channel lama (suara adzan lama) lalu buat channel dengan suara baru
+            for (const id of OLD_ADZAN_CHANNEL_IDS) {
+                try {
+                    await LocalNotifications.deleteChannel({ id });
+                } catch { }
+            }
             await LocalNotifications.createChannel({
-                id: 'adzan_channel_v1_2_3',
-                name: 'Adzan Sholat V3',
+                id: ADZAN_CHANNEL_ID,
+                name: ADZAN_CHANNEL_NAME,
                 description: 'Notifikasi Adzan',
                 importance: 5,
                 visibility: 1,
-                sound: 'adzan_v1_2_2.mp3',
+                sound: ADZAN_SOUND,
                 vibration: true,
             });
+
+            await migrateCustomAlarms();
 
             await LocalNotifications.registerActionTypes({
                 types: [{
@@ -61,6 +70,38 @@ export default function NotificationManager() {
             });
         } catch (e) {
             console.error("Create channel error", e);
+        }
+    };
+
+    // Pengingat tambahan yang dijadwalkan dengan suara lama: jadwalkan ulang sekali dengan suara baru
+    const migrateCustomAlarms = async () => {
+        if (localStorage.getItem('adzan-sound-version') === ADZAN_CHANNEL_ID) return;
+        try {
+            const saved: { id: number; name: string; time: string; enabled: boolean }[] = JSON.parse(localStorage.getItem('custom-alarms') || '[]');
+            const enabled = saved.filter((a) => a.enabled);
+            if (enabled.length) {
+                await LocalNotifications.cancel({ notifications: enabled.map((a) => ({ id: a.id })) });
+                await LocalNotifications.schedule({
+                    notifications: enabled.map((a) => {
+                        const [h, m] = a.time.split(':').map(Number);
+                        const at = new Date();
+                        at.setHours(h, m, 0, 0);
+                        if (at.getTime() <= Date.now()) at.setDate(at.getDate() + 1);
+                        return {
+                            id: a.id,
+                            title: `Waktunya ${a.name}`,
+                            body: `Saatnya sholat ${a.name} (${a.time})`,
+                            schedule: { at, allowWhileIdle: true, every: 'day' as const },
+                            sound: ADZAN_SOUND,
+                            channelId: ADZAN_CHANNEL_ID,
+                            smallIcon: 'ic_stat_icon_config_sample',
+                        };
+                    }),
+                });
+            }
+            localStorage.setItem('adzan-sound-version', ADZAN_CHANNEL_ID);
+        } catch (e) {
+            console.error("Migrate custom alarms error", e);
         }
     };
 
@@ -126,8 +167,8 @@ export default function NotificationManager() {
                             body: `Saatnya menunaikan sholat ${p} untuk wilayah ${selectedCity.lokasi}`,
                             id: idCounter++,
                             schedule: { at: scheduleDate, allowWhileIdle: true },
-                            sound: 'adzan_v1_2_2.mp3',
-                            channelId: 'adzan_channel_v1_2_3',
+                            sound: ADZAN_SOUND,
+                            channelId: ADZAN_CHANNEL_ID,
                             smallIcon: 'ic_stat_icon_config_sample',
                             actionTypeId: 'ALARM_ACTIONS',
                             extra: null

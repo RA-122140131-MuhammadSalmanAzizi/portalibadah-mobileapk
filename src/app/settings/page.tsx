@@ -320,7 +320,7 @@ export default function SettingsPage() {
                 </section>
 
                 <div className="text-center pt-8 pb-4">
-                    <p className="text-xs text-slate-400">Portal Ibadah v1.5</p>
+                    <p className="text-xs text-slate-400">Portal Ibadah v1.5.1</p>
                 </div>
 
             </div>

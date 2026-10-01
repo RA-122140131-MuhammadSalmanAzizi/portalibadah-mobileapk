@@ -33,6 +33,7 @@ import {
     formatCountdown,
 } from "@/lib/api";
 import { useLocation } from "@/contexts/LocationContext";
+import { ADZAN_SOUND, ADZAN_CHANNEL_ID } from "@/lib/adzan";
 
 interface SholatClientProps {
     initialCities: City[];
@@ -202,8 +203,8 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                 title: `Waktunya ${alarm.name}`,
                 body: `Saatnya sholat ${alarm.name} (${alarm.time})`,
                 schedule: { at: fireDate, allowWhileIdle: true, every: 'day' },
-                sound: 'adzan_v1_2_2.mp3',
-                channelId: 'adzan_channel_v1_2_3',
+                sound: ADZAN_SOUND,
+                channelId: ADZAN_CHANNEL_ID,
                 smallIcon: 'ic_stat_icon_config_sample'
             }]
         });

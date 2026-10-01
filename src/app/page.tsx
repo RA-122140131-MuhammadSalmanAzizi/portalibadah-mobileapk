@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { useLocation } from "@/contexts/LocationContext";
 import AyahNumber from "@/components/AyahNumber";
+import PullToRefresh from "@/components/PullToRefresh";
 
 type LastRead = { type: string; id: number; name: string; ayat?: number; arab?: string; arti?: string };
 type AyatCard = { surah: number; surahName: string; ayat: number; arab: string; arti: string };
@@ -58,6 +59,8 @@ export default function HomePage() {
   const [alarms, setAlarms] = useState<Record<string, boolean>>({});
   const [heroBg, setHeroBg] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Bertambah setiap kali beranda ditarik ke bawah untuk memuat ulang
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const showNotice = (msg: string) => {
     setNotice(msg);
@@ -120,7 +123,7 @@ export default function HomePage() {
       }
     };
     load();
-  }, []);
+  }, [refreshKey]);
 
   const allAlarmsOn = ALARM_PRAYERS.every(p => alarms[p]);
 
@@ -165,7 +168,7 @@ export default function HomePage() {
       }
     }
     loadPrayerTimes();
-  }, [selectedCity]);
+  }, [selectedCity, refreshKey]);
 
   useEffect(() => {
     if (!prayerTimes) return;
@@ -195,6 +198,7 @@ export default function HomePage() {
   const ayatHref = ayatCard ? `/quran/${ayatCard.surah}#ayat-${ayatCard.ayat}` : "/quran";
 
   return (
+    <PullToRefresh onRefresh={() => setRefreshKey((k) => k + 1)}>
     <div className="container-app max-w-2xl pt-5 pb-8 space-y-5">
       {/* Salam */}
       <header>
@@ -363,5 +367,6 @@ export default function HomePage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }
