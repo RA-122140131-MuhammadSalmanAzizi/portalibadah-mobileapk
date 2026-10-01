@@ -3,11 +3,13 @@
 import { useEffect } from 'react';
 import { Dialog } from '@capacitor/dialog';
 import { Capacitor } from '@capacitor/core';
+import pkg from '../../package.json';
 
 // Ganti ke Raw GitHub (Cache lebih cepat refresh: ~5 menit)
 const UPDATE_JSON_URL = 'https://raw.githubusercontent.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/main/update.json';
 
-const CURRENT_VERSION = '1.4';
+// Versi aplikasi diambil dari package.json agar selalu sama dengan versi build
+const CURRENT_VERSION = pkg.version;
 
 // Helper: Bandingkan versi (v1 > v2 ?)
 const isNewer = (v1: string, v2: string) => {
