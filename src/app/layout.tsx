@@ -11,6 +11,7 @@ import AppUpdater from "@/components/AppUpdater";
 import InstallPrompt from "@/components/InstallPrompt";
 import BottomNav from "@/components/BottomNav";
 import MiniPlayer from "@/components/MiniPlayer";
+import PullToRefresh from "@/components/PullToRefresh";
 import { themeInitScript } from "@/lib/theme";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
@@ -69,7 +70,7 @@ export default function RootLayout({
             <NotificationManager />
             <GlobalAudioNavigator />
             <Navbar />
-            <main className="flex-1 w-full pb-[calc(var(--nav-h)+var(--player-h)+env(safe-area-inset-bottom))] md:pb-[var(--player-h)]">{children}</main>
+            <main className="flex-1 w-full pb-[calc(var(--nav-h)+var(--player-h)+env(safe-area-inset-bottom))] md:pb-[var(--player-h)]"><PullToRefresh>{children}</PullToRefresh></main>
             <Footer />
             <MiniPlayer />
             <BottomNav />

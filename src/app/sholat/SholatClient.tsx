@@ -445,7 +445,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
     const cityLabel = (selectedCity?.lokasi || "Pilih kota").toLowerCase();
 
     return (
-        <div className="container-app max-w-2xl pt-4 pb-8 space-y-4">
+        <div className="container-app max-w-2xl pt-3 pb-8 space-y-3">
             {/* Judul + lokasi */}
             <header>
                 <div className="flex items-baseline justify-between gap-3">
@@ -454,7 +454,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                 </div>
                 <button
                     onClick={() => setCityPickerOpen(true)}
-                    className="mt-3 w-full flex items-center gap-2 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                    className="mt-2 w-full flex items-center gap-2 h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left"
                 >
                     <MapPin className="w-[18px] h-[18px] text-emerald-600 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 capitalize">{cityLabel}</span>
@@ -463,15 +463,15 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
             </header>
 
             {/* Sholat berikutnya */}
-            <section data-theme="light" className="rounded-2xl bg-gradient-sholat p-4">
+            <section data-theme="light" className="rounded-2xl bg-gradient-sholat px-4 py-3">
                 {countdown && !loading ? (
                     <div className="flex items-end justify-between gap-3">
                         <div className="min-w-0">
                             <p className="text-xs text-white/60">Menuju</p>
-                            <p className="text-2xl font-bold text-white leading-tight">{countdown.name}</p>
+                            <p className="text-xl font-bold text-white leading-tight">{countdown.name}</p>
                             <p className="text-sm text-white/70">{countdown.time} WIB</p>
                         </div>
-                        <p className="font-mono text-3xl font-bold text-emerald-200 tabular-nums" aria-label="Hitung mundur">
+                        <p className="font-mono text-2xl font-bold text-emerald-200 tabular-nums" aria-label="Hitung mundur">
                             {pad(Math.floor(cd / 3600))}:{pad(Math.floor((cd % 3600) / 60))}:{pad(cd % 60)}
                         </p>
                     </div>
@@ -486,7 +486,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
 
             {/* Daftar waktu sholat */}
             <section className="rounded-2xl border border-slate-100 overflow-hidden">
-                <div className="flex items-center justify-between px-4 h-12 border-b border-slate-100">
+                <div className="flex items-center justify-between px-4 h-10 border-b border-slate-100">
                     <h2 className="text-sm font-semibold text-slate-900">Hari ini</h2>
                     <button
                         role="switch"
@@ -504,7 +504,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                 {loading ? (
                     <ul className="divide-y divide-slate-100">
                         {prayerInfo.map((p) => (
-                            <li key={p.key} className="h-14 px-4 flex items-center gap-3 animate-pulse">
+                            <li key={p.key} className="h-11 px-4 flex items-center gap-3 animate-pulse">
                                 <div className="w-5 h-5 rounded bg-slate-100" />
                                 <div className="h-3 w-16 rounded bg-slate-100" />
                                 <div className="ml-auto h-4 w-12 rounded bg-slate-100" />
@@ -521,20 +521,20 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                             return (
                                 <li
                                     key={prayer.key}
-                                    className={`h-14 pl-4 pr-2 flex items-center gap-3 ${isNext ? "bg-emerald-500/10" : ""}`}
+                                    className={`h-11 pl-4 pr-1.5 flex items-center gap-3 ${isNext ? "bg-emerald-500/10" : ""}`}
                                 >
                                     <Icon className={`w-5 h-5 shrink-0 ${isNext || isCurrent ? "text-emerald-600" : "text-slate-400"}`} />
                                     <span className={`font-medium ${isNext ? "text-slate-900" : "text-slate-700"}`}>{prayer.name}</span>
                                     {isNext && <span className="text-[11px] font-semibold text-emerald-600">Berikutnya</span>}
                                     {isCurrent && !isNext && <span className="text-[11px] font-semibold text-slate-500">Sekarang</span>}
-                                    <span className={`ml-auto text-lg tabular-nums ${isNext ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>
+                                    <span className={`ml-auto text-base tabular-nums ${isNext ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>
                                         {prayerTimes[prayer.key]}
                                     </span>
                                     <button
                                         onClick={() => toggleAlarm(prayer.name)}
                                         aria-label={alarmOn ? `Matikan alarm ${prayer.name}` : `Nyalakan alarm ${prayer.name}`}
                                         aria-pressed={alarmOn}
-                                        className={`w-10 h-10 flex items-center justify-center ${alarmOn ? "text-emerald-600" : "text-slate-400"}`}
+                                        className={`w-9 h-9 flex items-center justify-center ${alarmOn ? "text-emerald-600" : "text-slate-400"}`}
                                     >
                                         {alarmOn ? <Bell className="w-5 h-5 fill-current" /> : <BellOff className="w-5 h-5" />}
                                     </button>
@@ -552,7 +552,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
 
             {/* Pengingat tambahan */}
             <section className="rounded-2xl border border-slate-100 overflow-hidden">
-                <div className="flex items-center justify-between px-4 h-12 border-b border-slate-100">
+                <div className="flex items-center justify-between px-4 h-10 border-b border-slate-100">
                     <h2 className="text-sm font-semibold text-slate-900">
                         Pengingat tambahan <span className="font-normal text-slate-500">({customAlarms.length}/5)</span>
                     </h2>
@@ -570,11 +570,11 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
 
                 <ul className="divide-y divide-slate-100">
                     {customAlarms.map((alarm) => (
-                        <li key={alarm.id} className="pl-4 pr-2 py-2">
+                        <li key={alarm.id} className="pl-4 pr-1.5 py-0.5">
                                 <div className="flex items-center gap-3">
                                     <Clock className="w-5 h-5 text-slate-400 shrink-0" />
                                     <span className="font-medium text-slate-700 truncate">{alarm.name}</span>
-                                    <span className="ml-auto text-lg font-semibold tabular-nums text-slate-800">{alarm.time}</span>
+                                    <span className="ml-auto text-base font-semibold tabular-nums text-slate-800">{alarm.time}</span>
                                     <div className="flex items-center">
                                         <button
                                             onClick={() => toggleCustomAlarm(alarm.id)}

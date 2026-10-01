@@ -156,6 +156,22 @@
     -webkit-touch-callout: default;
   }
 
+  /* Safari iPhone memberi input jam/tanggal lebar minimum bawaan sehingga keluar dari kartu */
+  input[type="time"],
+  input[type="date"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    display: block;
+  }
+
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
   /* Elemen yang punya data-theme sendiri ikut memakai warna teks temanya */
   [data-theme] {
     color: rgb(var(--n-900));

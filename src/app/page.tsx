@@ -22,7 +22,6 @@ import {
 } from "@/lib/api";
 import { useLocation } from "@/contexts/LocationContext";
 import AyahNumber from "@/components/AyahNumber";
-import PullToRefresh from "@/components/PullToRefresh";
 
 type LastRead = { type: string; id: number; name: string; ayat?: number; arab?: string; arti?: string };
 type AyatCard = { surah: number; surahName: string; ayat: number; arab: string; arti: string };
@@ -61,6 +60,15 @@ export default function HomePage() {
   const [notice, setNotice] = useState<string | null>(null);
   // Bertambah setiap kali beranda ditarik ke bawah untuk memuat ulang
   const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    // Tarik untuk memuat ulang (PullToRefresh global): muat ulang data beranda tanpa reload halaman
+    const onPull = (e: Event) => {
+      e.preventDefault();
+      setRefreshKey((k) => k + 1);
+    };
+    window.addEventListener('app-pull-refresh', onPull);
+    return () => window.removeEventListener('app-pull-refresh', onPull);
+  }, []);
 
   const showNotice = (msg: string) => {
     setNotice(msg);
@@ -198,7 +206,6 @@ export default function HomePage() {
   const ayatHref = ayatCard ? `/quran/${ayatCard.surah}#ayat-${ayatCard.ayat}` : "/quran";
 
   return (
-    <PullToRefresh onRefresh={() => setRefreshKey((k) => k + 1)}>
     <div className="container-app max-w-2xl pt-5 pb-8 space-y-5">
       {/* Salam */}
       <header>
@@ -367,6 +374,5 @@ export default function HomePage() {
         </div>
       )}
     </div>
-    </PullToRefresh>
   );
 }

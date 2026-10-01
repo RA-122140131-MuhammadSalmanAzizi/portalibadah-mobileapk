@@ -28,6 +28,15 @@ const CHANGELOG: { version: string; date: string; items: string[] }[] = [
         version: APP_VERSION,
         date: RELEASE_DATE,
         items: [
+            "Tarik ke bawah untuk memuat ulang kini ada di semua tab.",
+            "Halaman Sholat lebih ringkas sehingga Pengingat tambahan langsung terlihat.",
+            "Perbaikan kolom jam yang keluar dari kartu di iPhone.",
+        ],
+    },
+    {
+        version: "1.6.1",
+        date: "1 Oktober 2026",
+        items: [
             "Kartu pemutar di notifikasi kini terbaca (latar gelap dengan logo) di HP Xiaomi/MIUI dan lainnya.",
             "Kontrol murottal tampil di layar kunci.",
         ],
