@@ -49,7 +49,6 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#13110f",
   viewportFit: "cover",
 };
 
@@ -73,7 +72,7 @@ export default function RootLayout({
             <NotificationManager />
             <GlobalAudioNavigator />
             <Navbar />
-            <main className="flex-1 w-full pb-[calc(var(--nav-h)+var(--player-h)+env(safe-area-inset-bottom))] md:pb-[var(--player-h)]"><PullToRefresh>{children}</PullToRefresh></main>
+            <main className="flex-1 w-full pb-[calc(var(--nav-h)+var(--player-h)+var(--safe-bottom))] md:pb-[var(--player-h)]"><PullToRefresh>{children}</PullToRefresh></main>
             <Footer />
             <MiniPlayer />
             <BottomNav />

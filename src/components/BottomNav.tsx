@@ -34,7 +34,7 @@ export default function BottomNav() {
         <nav
             aria-label="Navigasi utama"
             className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            style={{ paddingBottom: "var(--safe-bottom)" }}
         >
             <ul className="grid grid-cols-6 h-16">
                 {tabs.map(({ href, label, icon: Icon }) => {

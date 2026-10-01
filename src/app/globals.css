@@ -110,6 +110,7 @@
    sehingga latar bar status ikut warna header (sesuai tema). */
 :root {
   --status-bar-h: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --safe-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
 }
 
 /* Tinggi navigasi bawah & mini player (diatur oleh BottomNav / MiniPlayer) */

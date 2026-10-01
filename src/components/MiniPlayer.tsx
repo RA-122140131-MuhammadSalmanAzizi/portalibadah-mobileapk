@@ -36,7 +36,7 @@ export default function MiniPlayer() {
     return (
         <div
             className="fixed inset-x-0 z-40 px-3 md:left-auto md:right-6 md:w-96 md:px-0"
-            style={{ bottom: "calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px)" }}
+            style={{ bottom: "calc(var(--nav-h) + var(--safe-bottom) + 8px)" }}
         >
             <div className="relative overflow-hidden flex items-center gap-3 p-2 pr-1 rounded-2xl bg-slate-100 border border-slate-200 shadow-lg shadow-black/20">
                 <button

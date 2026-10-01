@@ -695,7 +695,7 @@ export default function SholatClient({ initialCities }: SholatClientProps) {
                     <button aria-label="Tutup" className="absolute inset-0 bg-black/50" onClick={() => setCityPickerOpen(false)} />
                     <div
                         className="absolute inset-x-0 bottom-0 max-h-[85vh] flex flex-col rounded-t-3xl bg-white border-t border-slate-200 animate-fade-in"
-                        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                        style={{ paddingBottom: "var(--safe-bottom)" }}
                     >
                         <div className="shrink-0 px-4 pt-3 pb-3 border-b border-slate-100 space-y-3">
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto" />

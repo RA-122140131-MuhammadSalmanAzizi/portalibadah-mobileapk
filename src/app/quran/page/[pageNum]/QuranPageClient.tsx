@@ -557,7 +557,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                 className="relative flex-1 overflow-hidden"
                 style={{
                     paddingTop: "var(--status-bar-h)",
-                    paddingBottom: "env(safe-area-inset-bottom)",
+                    paddingBottom: "var(--safe-bottom)",
                     // Geser horizontal dipakai untuk membalik halaman, bukan gestur "kembali" browser
                     touchAction: isZoomed ? "none" : "pan-y pinch-zoom",
                     overscrollBehavior: "none",
@@ -596,7 +596,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             {/* ===== Bar bawah: hanya slider halaman ===== */}
             <footer
                 className={`absolute inset-x-0 bottom-0 z-20 bg-white/95 backdrop-blur-lg border-t border-slate-200 transition-opacity duration-700 ${chromeVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-                style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                style={{ paddingBottom: "var(--safe-bottom)" }}
             >
                 <div className="max-w-3xl mx-auto px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -633,7 +633,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                 return (
                     <div
                         className="fixed inset-x-0 z-30 px-3 transition-[bottom] duration-300"
-                        style={{ bottom: chromeVisible ? "calc(env(safe-area-inset-bottom) + 84px)" : "calc(env(safe-area-inset-bottom) + 12px)" }}
+                        style={{ bottom: chromeVisible ? "calc(var(--safe-bottom) + 84px)" : "calc(var(--safe-bottom) + 12px)" }}
                     >
                         <div className="max-w-3xl mx-auto flex items-center gap-2 p-2 rounded-2xl bg-slate-100 border border-slate-200 shadow-lg shadow-black/20">
                             <button
@@ -673,7 +673,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                     <button aria-label="Tutup" className="absolute inset-0 bg-black/50" onClick={() => setSheet("none")} />
                     <div
                         className="absolute inset-x-0 bottom-0 max-h-[80vh] flex flex-col rounded-t-3xl bg-white border-t border-slate-200 animate-fade-in"
-                        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                        style={{ paddingBottom: "var(--safe-bottom)" }}
                     >
                         <div className="shrink-0 px-4 pt-3 pb-3 border-b border-slate-200">
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3" />
@@ -732,7 +732,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                     <button aria-label="Tutup" className="absolute inset-0 bg-black/50" onClick={() => setSheet("none")} />
                     <div
                         className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white border-t border-slate-200 px-4 pt-3 animate-fade-in"
-                        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+                        style={{ paddingBottom: "calc(var(--safe-bottom) + 16px)" }}
                     >
                         <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-4" />
                         <div className="flex items-center justify-between mb-4">
@@ -779,7 +779,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             {insight && <AyahInsightSheet ayah={insight} onClose={() => setInsight(null)} />}
 
             {toast && (
-                <div role="status" style={{ bottom: audioPage ? "calc(env(safe-area-inset-bottom) + 172px)" : "calc(env(safe-area-inset-bottom) + 112px)" }} className="fixed left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in">
+                <div role="status" style={{ bottom: audioPage ? "calc(var(--safe-bottom) + 172px)" : "calc(var(--safe-bottom) + 112px)" }} className="fixed left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in">
                     {toast}
                 </div>
             )}

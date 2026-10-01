@@ -65,7 +65,7 @@ export default function AyahInsightSheet({ ayah, onClose }: { ayah: InsightAyah;
             <button aria-label="Tutup" className="absolute inset-0 bg-black/55" onClick={onClose} />
             <div
                 className="absolute inset-x-0 bottom-0 max-h-[88vh] flex flex-col rounded-t-3xl bg-white text-slate-900 border-t border-slate-200 animate-fade-in"
-                style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                style={{ paddingBottom: "var(--safe-bottom)" }}
             >
                 <div className="shrink-0 px-4 pt-3 pb-3 border-b border-slate-200">
                     <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3" />

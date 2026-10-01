@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { X, Download, Smartphone, Monitor, Apple, Share } from 'lucide-react';
 import LogoMark from '@/components/LogoMark';
 import { APK_DOWNLOAD_URL } from '@/lib/version';
@@ -94,7 +95,8 @@ export default function InstallPrompt() {
         handleDismiss();
     };
 
-    if (!showPrompt || isStandalone) return null;
+    // Di dalam aplikasi APK tidak perlu ajakan install
+    if (!showPrompt || isStandalone || Capacitor.isNativePlatform()) return null;
 
     return (
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">

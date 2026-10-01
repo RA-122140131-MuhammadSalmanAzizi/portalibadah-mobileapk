@@ -1,11 +1,11 @@
 {
   "name": "portalibadah",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "private": true,
   "releaseNote": "Version 1.3.0: Zero-Flicker Quran Navigation, Smooth Swipe & Persistent Audio Controls",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/sw-manifest.mjs",
+    "build": "next build && node scripts/flatten-segments.mjs && node scripts/sw-manifest.mjs",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "patch-package"

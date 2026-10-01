@@ -36,15 +36,15 @@ export function getAppTheme(): AppTheme {
 export function applyStatusBar(theme: AppTheme) {
     if (typeof document === "undefined") return;
     const color = THEME_COLORS[theme];
-    // Bisa ada lebih dari satu tag (dari metadata Next.js); semuanya disamakan
-    const metas = document.querySelectorAll('meta[name="theme-color"]');
-    if (metas.length === 0) {
-        const meta = document.createElement("meta");
-        meta.setAttribute("name", "theme-color");
-        meta.setAttribute("content", color);
-        document.head.appendChild(meta);
+    // Tag milik aplikasi sendiri (dibuat themeInitScript), tidak disentuh Next.js saat pindah halaman
+    let meta = document.getElementById("app-theme-color") as HTMLMetaElement | null;
+    if (!meta) {
+        meta = document.createElement("meta");
+        meta.id = "app-theme-color";
+        meta.name = "theme-color";
+        document.head.prepend(meta);
     }
-    metas.forEach((m) => m.setAttribute("content", color));
+    meta.content = color;
     if (Capacitor.isNativePlatform()) {
         SystemBars.setStyle({ style: theme === "dark" ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => { });
     }
@@ -60,4 +60,4 @@ export function applyAppTheme(theme: AppTheme) {
 }
 
 // Dijalankan sebelum React hydrate agar tidak ada kilatan warna putih, dan bar status langsung sesuai tema
-export const themeInitScript = `(function(){try{var c={dark:'${THEME_COLORS.dark}',sepia:'${THEME_COLORS.sepia}',light:'${THEME_COLORS.light}'};var t=localStorage.getItem('${APP_THEME_KEY}');if(!(t in c))t='${DEFAULT_APP_THEME}';document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c[t]);});}catch(e){}})();`;
+export const themeInitScript = `(function(){try{var c={dark:'${THEME_COLORS.dark}',sepia:'${THEME_COLORS.sepia}',light:'${THEME_COLORS.light}'};var t=localStorage.getItem('${APP_THEME_KEY}');if(!(t in c))t='${DEFAULT_APP_THEME}';document.documentElement.dataset.theme=t;var m=document.getElementById('app-theme-color');if(!m){m=document.createElement('meta');m.id='app-theme-color';m.name='theme-color';document.head.prepend(m);}m.content=c[t];}catch(e){}})();`;

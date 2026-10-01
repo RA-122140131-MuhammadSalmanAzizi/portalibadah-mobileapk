@@ -368,7 +368,7 @@ export default function HomePage() {
         <div
           role="status"
           className="fixed left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in"
-          style={{ bottom: "calc(var(--nav-h) + var(--player-h) + env(safe-area-inset-bottom) + 16px)" }}
+          style={{ bottom: "calc(var(--nav-h) + var(--player-h) + var(--safe-bottom) + 16px)" }}
         >
           {notice}
         </div>

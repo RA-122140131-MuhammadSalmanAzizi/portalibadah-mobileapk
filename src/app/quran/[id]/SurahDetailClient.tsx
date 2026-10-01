@@ -603,14 +603,14 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 aria-label="Kembali ke atas"
                 className={`fixed right-4 z-20 w-11 h-11 rounded-full bg-emerald-500 text-white shadow-lg shadow-black/20 flex items-center justify-center transition-all duration-300 ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-                style={{ bottom: `calc(${isSurahAudioActive ? '84px' : '0px'} + env(safe-area-inset-bottom) + 20px)` }}
+                style={{ bottom: `calc(${isSurahAudioActive ? '84px' : '0px'} + var(--safe-bottom) + 20px)` }}
             >
                 <ArrowUp className="w-5 h-5" />
             </button>
 
             {/* Kontrol audio ringkas saat surah ini sedang diputar */}
             {isSurahAudioActive && (
-                <div className="fixed inset-x-0 bottom-0 z-20 px-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
+                <div className="fixed inset-x-0 bottom-0 z-20 px-3" style={{ paddingBottom: "calc(var(--safe-bottom) + 12px)" }}>
                     <div className="container-app max-w-3xl flex items-center gap-2 p-2 rounded-2xl bg-slate-100 border border-slate-200 shadow-lg shadow-black/20">
                         <button
                             onClick={toggle}
@@ -660,7 +660,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                     <button aria-label="Tutup" className="absolute inset-0 bg-black/50" onClick={() => setSettingsOpen(false)} />
                     <div
                         className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white border-t border-slate-200 animate-fade-in"
-                        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+                        style={{ paddingBottom: "calc(var(--safe-bottom) + 16px)" }}
                     >
                         <div className="container-app max-w-3xl pt-3">
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-4" />
@@ -777,7 +777,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
                 <div
                     role="status"
                     className="fixed left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in"
-                    style={{ bottom: `calc(${isSurahAudioActive ? '84px' : '0px'} + env(safe-area-inset-bottom) + 24px)` }}
+                    style={{ bottom: `calc(${isSurahAudioActive ? '84px' : '0px'} + var(--safe-bottom) + 24px)` }}
                 >
                     {toast}
                 </div>

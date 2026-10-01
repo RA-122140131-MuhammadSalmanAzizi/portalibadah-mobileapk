@@ -28,6 +28,16 @@ const CHANGELOG: { version: string; date: string; items: string[] }[] = [
         version: APP_VERSION,
         date: RELEASE_DATE,
         items: [
+            "Bar status HP kini transparan dan menyatu dengan header (tampilan penuh layar), juga di Android 14 ke bawah dan di PWA.",
+            "Warnanya mengikuti tema yang dipilih, dan di halaman baca Al-Qur'an mengikuti tema bacaan.",
+            "Perbaikan: tab Al-Qur'an dan tab lain kadang tampil kosong di aplikasi APK.",
+            "Ajakan install tidak lagi muncul di dalam aplikasi APK.",
+        ],
+    },
+    {
+        version: "1.6.3",
+        date: "1 Oktober 2026",
+        items: [
             "Warna bar status HP (jam, sinyal, baterai) mengikuti tema yang sedang tampil, termasuk tema bacaan Al-Qur'an.",
             "Tulisan Pengaturan di bawah ikon pengaturan.",
         ],
