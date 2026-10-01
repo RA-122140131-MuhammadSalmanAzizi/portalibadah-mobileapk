@@ -88,7 +88,7 @@ export default function Navbar() {
     return (
         <>
             {/* Desktop Navbar */}
-            <header className={`sticky top-0 z-50 transition-colors duration-300 border-b ${currentThemeClass}`}>
+            <header className={`sticky top-0 z-50 transition-colors duration-300 border-b ${currentThemeClass}`} style={{ paddingTop: "var(--status-bar-h)" }}>
                 <div className="container-app">
                     <nav className="flex items-center justify-between h-16 lg:h-20">
                         {/* Logo */}
@@ -179,9 +179,11 @@ export default function Navbar() {
                             {/* Settings Button */}
                             <Link
                                 href="/settings"
-                                className={`p-2.5 rounded-xl transition-colors ${getButtonStyle()}`}
+                                aria-label="Pengaturan"
+                                className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${getButtonStyle()}`}
                             >
                                 <Settings className="w-5 h-5" />
+                                <span className="text-[10px] font-medium leading-none">Pengaturan</span>
                             </Link>
 
                         </div>

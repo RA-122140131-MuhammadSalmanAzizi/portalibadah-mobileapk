@@ -28,6 +28,14 @@ const CHANGELOG: { version: string; date: string; items: string[] }[] = [
         version: APP_VERSION,
         date: RELEASE_DATE,
         items: [
+            "Warna bar status HP (jam, sinyal, baterai) mengikuti tema yang sedang tampil, termasuk tema bacaan Al-Qur'an.",
+            "Tulisan Pengaturan di bawah ikon pengaturan.",
+        ],
+    },
+    {
+        version: "1.6.2",
+        date: "1 Oktober 2026",
+        items: [
             "Tarik ke bawah untuk memuat ulang kini ada di semua tab.",
             "Halaman Sholat lebih ringkas sehingga Pengingat tambahan langsung terlihat.",
             "Perbaikan kolom jam yang keluar dari kartu di iPhone.",

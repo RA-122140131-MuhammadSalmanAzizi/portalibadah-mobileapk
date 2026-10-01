@@ -105,6 +105,13 @@
   --a-950: 40 25 14;
 }
 
+/* Tinggi area bar status HP. APK Android (edge-to-edge) mendapat nilai dari Capacitor,
+   web/iPhone dari env(). Header yang menempel di atas memakai ini sebagai ruang atas,
+   sehingga latar bar status ikut warna header (sesuai tema). */
+:root {
+  --status-bar-h: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+}
+
 /* Tinggi navigasi bawah & mini player (diatur oleh BottomNav / MiniPlayer) */
 :root {
   --nav-h: 0px;

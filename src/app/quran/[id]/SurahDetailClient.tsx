@@ -29,6 +29,7 @@ import {
 import { Share } from "@capacitor/share";
 import { SurahDetail, getPageOfVerse } from "@/lib/api";
 import { setReadMode } from "@/lib/quran-data";
+import { applyStatusBar, getAppTheme, AppTheme } from "@/lib/theme";
 import AyahInsightSheet, { InsightAyah } from "@/components/AyahInsightSheet";
 import { useAudio } from "@/contexts/AudioContext";
 import AyahNumber from "@/components/AyahNumber";
@@ -404,6 +405,13 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
     };
 
     const arabFamily = ARAB_FONTS.find((f) => f.id === arabFont)?.family;
+
+    // Bar status mengikuti tema bacaan; kembali ke tema aplikasi saat keluar dari halaman baca
+    const readerTheme = (READER_THEMES.find((t) => t.id === theme)?.dataTheme ?? "dark") as AppTheme;
+    useEffect(() => {
+        applyStatusBar(readerTheme);
+    }, [readerTheme]);
+    useEffect(() => () => applyStatusBar(getAppTheme()), []);
     const dataTheme = READER_THEMES.find((t) => t.id === theme)?.dataTheme ?? "dark";
     const showBismillah = surah.nomor !== 1 && surah.nomor !== 9;
     const iconBtn = "w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors";
@@ -411,7 +419,7 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
     return (
         <div data-theme={dataTheme} className="min-h-screen bg-white text-slate-900 transition-colors duration-300">
             {/* Header tetap: kembali, judul, audio, bookmark, pengaturan */}
-            <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-lg border-b border-slate-200">
+            <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-lg border-b border-slate-200" style={{ paddingTop: "var(--status-bar-h)" }}>
                 <div className="container-app max-w-3xl h-14 flex items-center gap-1">
                     <Link href="/quran" aria-label="Kembali ke daftar surah" className={`${iconBtn} -ml-2 text-slate-700`}>
                         <ArrowLeft className="w-5 h-5" />

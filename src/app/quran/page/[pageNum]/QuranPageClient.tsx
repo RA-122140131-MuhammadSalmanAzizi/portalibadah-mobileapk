@@ -25,6 +25,7 @@ import {
 import { QuranPageData, getQuranPageData } from "@/lib/api";
 import { QURAN_CHAPTERS, getSurahsByPage, setReadMode } from "@/lib/quran-data";
 import { JUZ_STARTS } from "@/lib/juz";
+import { applyStatusBar, getAppTheme, AppTheme } from "@/lib/theme";
 import { useAudio } from "@/contexts/AudioContext";
 import AyahNumber from "@/components/AyahNumber";
 import LogoLoader from "@/components/LogoLoader";
@@ -476,6 +477,12 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     };
 
     const dataTheme = READER_THEMES.find((t) => t.id === theme)?.dataTheme ?? "sepia";
+
+    // Bar status mengikuti tema bacaan; kembali ke tema aplikasi saat keluar dari halaman baca
+    useEffect(() => {
+        applyStatusBar(dataTheme as AppTheme);
+    }, [dataTheme]);
+    useEffect(() => () => applyStatusBar(getAppTheme()), []);
     // Gambar mushaf berlatar terang: dibalik warnanya di tema gelap, dibaurkan di sepia
     const imageFilter =
         theme === "dark" ? { filter: "invert(0.9) hue-rotate(180deg) brightness(0.95)" } : theme === "yellow" ? { mixBlendMode: "multiply" as const } : {};
@@ -494,7 +501,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             {/* ===== Bar atas ===== */}
             <header
                 className={`absolute inset-x-0 top-0 z-20 bg-white/95 backdrop-blur-lg border-b border-slate-200 transition-opacity duration-700 ${chromeVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-                style={{ paddingTop: "env(safe-area-inset-top)" }}
+                style={{ paddingTop: "var(--status-bar-h)" }}
             >
                 <div className="flex items-center gap-1 h-14 px-2 max-w-3xl mx-auto">
                     <Link href="/quran" aria-label="Kembali ke daftar" className={iconBtn}>
@@ -549,7 +556,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                 ref={containerRef}
                 className="relative flex-1 overflow-hidden"
                 style={{
-                    paddingTop: "env(safe-area-inset-top)",
+                    paddingTop: "var(--status-bar-h)",
                     paddingBottom: "env(safe-area-inset-bottom)",
                     // Geser horizontal dipakai untuk membalik halaman, bukan gestur "kembali" browser
                     touchAction: isZoomed ? "none" : "pan-y pinch-zoom",

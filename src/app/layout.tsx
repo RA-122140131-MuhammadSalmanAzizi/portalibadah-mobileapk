@@ -14,6 +14,7 @@ import MiniPlayer from "@/components/MiniPlayer";
 import PullToRefresh from "@/components/PullToRefresh";
 import { themeInitScript } from "@/lib/theme";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import StatusBarSync from "@/components/StatusBarSync";
 
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export const metadata: Metadata = {
     locale: "id_ID",
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Portal Ibadah", statusBarStyle: "default" },
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
@@ -66,6 +68,7 @@ export default function RootLayout({
           <AudioProvider>
             <AppUpdater />
             <ServiceWorkerRegister />
+            <StatusBarSync />
             <AndroidBackHandler />
             <NotificationManager />
             <GlobalAudioNavigator />
