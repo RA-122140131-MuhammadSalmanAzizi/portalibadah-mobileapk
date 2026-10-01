@@ -17,6 +17,7 @@ dependencies {
     implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-share')
     implementation project(':capacitor-toast')
+    implementation project(':capgo-capacitor-media-session')
     implementation project(':capacitor-native-settings')
 
 }
