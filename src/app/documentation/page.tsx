@@ -2,270 +2,222 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Download, Info, Github, ArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
+import { APP_VERSION, RELEASE_DATE, APK_DOWNLOAD_URL } from "@/lib/version";
+
+const SECTIONS = [
+    { id: "intro", label: "Pengenalan" },
+    { id: "features", label: "Fitur Utama" },
+    { id: "offline", label: "Mode Offline" },
+    { id: "tech-stack", label: "Teknologi" },
+    { id: "changelog", label: "Riwayat Versi" },
+    { id: "privacy", label: "Privasi" },
+];
+
+const FEATURES = [
+    { title: "Al-Qur'an Digital", desc: "114 surah dengan teks Arab berfont Mushaf Standar Indonesia (LPMQ), Latin, terjemahan, tafsir Kemenag per ayat, dan murottal. Bisa dibaca per ayat atau per halaman mushaf (604 halaman)." },
+    { title: "Jadwal Sholat & Alarm", desc: "Waktu sholat untuk 500+ kota/kabupaten di Indonesia, deteksi lokasi otomatis, alarm adzan (Ahmad Nafees), dan pengingat tambahan seperti Tahajud atau Dhuha." },
+    { title: "Arah Kiblat", desc: "Kompas kiblat memakai GPS dan sensor kompas perangkat, lengkap dengan derajat arah dan jarak ke Ka'bah." },
+    { title: "Doa Harian", desc: "227 doa berkelompok lengkap dengan teks Arab, Latin, arti, dan sumber haditsnya." },
+    { title: "Kumpulan Hadits", desc: "Hadits dari 9 kitab (Bukhari, Muslim, Abu Dawud, Tirmidzi, Nasa'i, Ibnu Majah, Ahmad, Malik, Darimi)." },
+    { title: "Tampilan Nyaman", desc: "Tema Gelap, Sepia, dan Terang; ukuran huruf Arab yang bisa diatur; dan navigasi yang ringkas." },
+];
+
+const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+    {
+        version: APP_VERSION,
+        date: RELEASE_DATE,
+        items: [
+            "Desain ulang menyeluruh: tema Gelap/Sepia/Terang, beranda ringkas, navigasi bawah, tarik untuk memuat ulang.",
+            "Al-Qur'an: font LPMQ, mode Per Ayat atau Per Halaman, tafsir per ayat, ulangi murottal, mushaf tanpa loading berulang.",
+            "Sholat: adzan Ahmad Nafees, deteksi lokasi membaca alamat lengkap, pengingat tambahan lewat modal, dan kompas kiblat.",
+            "Mode offline: jadwal sholat sebulan, doa, serta surah dan halaman mushaf yang disimpan.",
+            "Hadits kembali tampil (sumber data baru, 9 kitab) dan Doa memakai data equran.id.",
+        ],
+    },
+    {
+        version: "1.4",
+        date: "30 Januari 2026",
+        items: [
+            "Sistem update diganti menjadi notifikasi update yang mengarah ke halaman unduhan resmi.",
+            "Perbaikan masalah jaringan (Response Error dan SSL).",
+            "Perbaikan kecil pada navigasi dan dokumentasi.",
+        ],
+    },
+    {
+        version: "1.2.2",
+        date: "18 Januari 2026",
+        items: ["Suara adzan diputar penuh dan masalah cache diperbaiki.", "Kode versi aplikasi disamakan dengan versi web.", "Ukuran aplikasi lebih kecil."],
+    },
+    {
+        version: "1.2.0",
+        date: "18 Januari 2026",
+        items: ["Halaman Hadits baru dengan filter dan pencarian.", "Dokumentasi tersedia langsung di aplikasi.", "Perbaikan tampilan dan scroll Doa Harian."],
+    },
+    {
+        version: "1.1.8",
+        date: "17 Januari 2026",
+        items: ["Tombol unduh aplikasi.", "Dokumentasi di dalam aplikasi.", "Perbaikan logika Juz."],
+    },
+    {
+        version: "1.1.6",
+        date: "15 Januari 2026",
+        items: ["Tampilan Hadits berbentuk kartu.", "Kartu hikmah bisa di-scroll."],
+    },
+];
 
 export default function DocumentationPage() {
-    // Scroll Spy Logic
     const [activeSection, setActiveSection] = useState("intro");
-
-    const sections = [
-        { id: "intro", label: "Introduction" },
-        { id: "features", label: "Key Features" },
-        { id: "tech-stack", label: "Technical Stack" },
-        { id: "changelog", label: "Changelog" },
-        { id: "privacy", label: "Privacy Policy" },
-    ];
 
     useEffect(() => {
         const handleScroll = () => {
-            const currentScroll = window.scrollY + 300; // Offset 300px agar deteksi lebih awal saat scroll
-
-            // Cek setiap section
-            sections.forEach((section) => {
-                const element = document.getElementById(section.id);
-                if (element) {
-                    const top = element.offsetTop;
-                    const height = element.offsetHeight;
-
-                    // Jika posisi scroll ada di dalam area section
-                    if (currentScroll >= top && currentScroll < top + height) {
-                        setActiveSection(section.id);
-                    }
-                }
+            const current = window.scrollY + 300;
+            SECTIONS.forEach(({ id }) => {
+                const el = document.getElementById(id);
+                if (el && current >= el.offsetTop && current < el.offsetTop + el.offsetHeight) setActiveSection(id);
             });
         };
-
         window.addEventListener("scroll", handleScroll);
-        // Trigger sekali saat mount
         handleScroll();
-
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     const scrollToSection = (id: string) => {
-        const element = document.getElementById(id);
-        if (element) {
-            const offset = 40;
-            const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-            const offsetPosition = elementPosition - offset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: "smooth"
-            });
-            setActiveSection(id);
-        }
+        const el = document.getElementById(id);
+        if (!el) return;
+        window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 40, behavior: "smooth" });
+        setActiveSection(id);
     };
 
     return (
-        <div className="bg-white min-h-screen font-sans text-slate-900">
-
-            {/* Sidebar Fixed - Replicating Previous Docs Style */}
-            {/* Mobile: Width 130px | Desktop: Width 260px */}
-            <aside className="fixed top-0 bottom-0 left-0 bg-slate-900 border-r border-slate-800 overflow-y-auto z-50
-                w-[130px] md:w-[260px] p-4 md:p-8 flex flex-col transition-all duration-300">
-
-                {/* Logo Area */}
-                <div className="mb-6 md:mb-10 text-white font-extrabold text-sm md:text-xl tracking-tight leading-tight">
-                    PORTAL<br />IBADAH<br />DOCS
+        <div className="bg-white min-h-screen text-slate-900">
+            {/* Sidebar */}
+            <aside className="fixed top-0 bottom-0 left-0 z-50 w-[130px] md:w-[260px] p-4 md:p-8 flex flex-col overflow-y-auto bg-slate-50 border-r border-slate-200">
+                <div className="mb-6 md:mb-10 font-extrabold text-sm md:text-xl tracking-tight leading-tight text-slate-900">
+                    PORTAL<br />IBADAH<br /><span className="text-emerald-600">DOKUMENTASI</span>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1">
-                    <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 md:mb-4 px-2">
-                        Menu
-                    </div>
+                    <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 md:mb-4 px-2">Menu</div>
                     <ul className="space-y-1">
-                        {sections.map(section => (
-                            <li key={section.id}>
+                        {SECTIONS.map(({ id, label }) => (
+                            <li key={id}>
                                 <button
-                                    onClick={() => scrollToSection(section.id)}
-                                    className={`w-full text-left px-3 py-2 rounded-lg text-[10px] md:text-sm font-medium transition-all ${activeSection === section.id
-                                        ? "bg-white/10 text-white"
-                                        : "text-slate-400 hover:text-white hover:bg-white/5"
-                                        }`}
+                                    onClick={() => scrollToSection(id)}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] md:text-sm font-medium transition-colors ${activeSection === id ? "bg-emerald-500/15 text-emerald-600" : "text-slate-500"}`}
                                 >
-                                    {section.label}
+                                    {label}
                                 </button>
                             </li>
                         ))}
                     </ul>
-
-                    <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mt-6 md:mt-8 mb-3 md:mb-4 px-2">
-                        Links
+                    <div className="mt-6 md:mt-8 px-2">
+                        <Link href="/about" className="block py-2 text-[11px] md:text-sm text-slate-500">
+                            &larr; Kembali ke aplikasi
+                        </Link>
                     </div>
-                    <ul className="space-y-2">
-                        <li>
-                            <Link href="/" className="block px-3 py-2 text-[10px] md:text-sm text-slate-400 hover:text-white transition-colors">
-                                ← Back to App
-                            </Link>
-                        </li>
-                    </ul>
                 </nav>
 
-                {/* Sidebar Footer */}
-                <div className="mt-8 pt-6 border-t border-white/10">
-                    <a
-                        href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col md:flex-row items-center justify-center gap-2 w-full py-2 md:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg md:rounded-xl font-bold transition-all text-[10px] md:text-sm text-center"
-                    >
-                        <Download className="w-4 h-4 md:w-4 md:h-4" />
-                        <span>Download APK</span>
-                    </a>
-                </div>
+                <a
+                    href={APK_DOWNLOAD_URL}
+                    className="mt-8 flex flex-col md:flex-row items-center justify-center gap-2 w-full py-2 md:py-3 rounded-lg md:rounded-xl bg-emerald-500 text-white font-semibold text-[11px] md:text-sm text-center"
+                >
+                    <Download className="w-4 h-4" />
+                    Unduh APK
+                </a>
             </aside>
 
-            {/* Main Content Area */}
-            {/* Margin Left matches Sidebar Width */}
-            <main className="ml-[130px] md:ml-[260px] p-6 md:p-16 max-w-4xl min-h-screen">
-
-                {/* Intro Section */}
+            <main className="ml-[130px] md:ml-[260px] p-5 md:p-16 max-w-4xl min-h-screen">
+                {/* Pengenalan */}
                 <section id="intro" className="mb-12 md:mb-20">
-                    <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] md:text-xs font-bold mb-4 md:mb-6 border border-indigo-100">
-                        Dokumetasi resmi
-                    </div>
-                    <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6 leading-tight">
-                        Portal Ibadah Mobile
-                    </h1>
-                    <p className="text-xs md:text-lg text-slate-600 leading-relaxed md:leading-relaxed mb-6">
-                        Aplikasi mobile all-in-one yang komprehensif untuk kebutuhan ibadah harian Muslim Indonesia.
-                        Dibuat dengan teknologi web modern dan dibungkus menjadi aplikasi native Android yang ringan, cepat, dan mengutamakan privasi pengguna.
+                    <p className="text-[11px] md:text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">Dokumentasi resmi</p>
+                    <h1 className="text-2xl md:text-5xl font-extrabold mb-4 md:mb-6 leading-tight">Portal Ibadah</h1>
+                    <p className="text-sm md:text-lg text-slate-600 leading-relaxed">
+                        Aplikasi ibadah harian untuk Muslim Indonesia: Al-Qur&apos;an, jadwal sholat, kiblat, doa, dan hadits.
+                        Dibuat dengan teknologi web modern, tersedia sebagai aplikasi Android dan aplikasi web (PWA), ringan, gratis, dan tanpa iklan.
                     </p>
-
-                    <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-100 mt-6">
-                        <p className="text-[10px] md:text-sm text-slate-500 mb-3">Versi Terbaru: <strong>v1.4</strong></p>
-                        <a href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases" target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold hover:bg-black transition-transform hover:-translate-y-1 shadow-md">
+                    <div className="mt-6 p-4 md:p-6 rounded-xl bg-slate-50 border border-slate-100">
+                        <p className="text-xs md:text-sm text-slate-500 mb-3">
+                            Versi terbaru: <strong className="text-slate-900">v{APP_VERSION}</strong> ({RELEASE_DATE})
+                        </p>
+                        <a
+                            href={APK_DOWNLOAD_URL}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 text-white text-xs md:text-sm font-semibold"
+                        >
                             <Download className="w-4 h-4" />
-                            Download App v1.4
+                            Unduh v{APP_VERSION}
                         </a>
                     </div>
                 </section>
 
-                {/* Features Section */}
+                {/* Fitur */}
                 <section id="features" className="mb-12 md:mb-20 pt-8 border-t border-slate-100">
-                    <h2 className="text-xl md:text-3xl font-bold text-slate-900 mb-6 md:mb-8">Fitur Utama</h2>
-                    <ul className="space-y-4 md:space-y-6">
-                        {[
-                            { title: "Al-Qur'an Digital", desc: "Akses lengkap 30 Juz dan 114 Surah dengan terjemahan dan audio." },
-                            { title: "Jadwal Sholat Akurat", desc: "Perhitungan waktu sholat presisi untuk 500+ kota di Indonesia." },
-                            { title: "Kumpulan Hadits", desc: "Koleksi hadits pilihan dari Shahih Bukhari dengan tampilan modern." },
-                            { title: "Doa Harian", desc: "Himpunan doa-doa penting untuk berbagai aktivitas sehari-hari." },
-                            { title: "Smart Notification", desc: "Sistem notifikasi update yang cerdas dan handal (v1.4+)." },
-                        ].map((item, i) => (
-                            <li key={i} className="flex gap-3 md:gap-4">
-                                <div className="hidden md:flex w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-100 items-center justify-center shrink-0 mt-1">
-                                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-indigo-600"></div>
-                                </div>
-                                <div className="ml-1 md:ml-0">
-                                    <h3 className="text-sm md:text-lg font-bold text-slate-900">{item.title}</h3>
-                                    <p className="text-xs md:text-base text-slate-600 leading-relaxed mt-1">{item.desc}</p>
-                                </div>
+                    <h2 className="text-xl md:text-3xl font-bold mb-6 md:mb-8">Fitur Utama</h2>
+                    <ul className="space-y-5">
+                        {FEATURES.map((item) => (
+                            <li key={item.title}>
+                                <h3 className="text-sm md:text-lg font-bold">{item.title}</h3>
+                                <p className="text-xs md:text-base text-slate-600 leading-relaxed mt-1">{item.desc}</p>
                             </li>
                         ))}
                     </ul>
                 </section>
 
-                {/* Tech Stack */}
+                {/* Offline */}
+                <section id="offline" className="mb-12 md:mb-20 pt-8 border-t border-slate-100">
+                    <h2 className="text-xl md:text-3xl font-bold mb-4">Mode Offline</h2>
+                    <ul className="list-disc ml-4 space-y-2 text-xs md:text-base text-slate-600 leading-relaxed">
+                        <li>Jadwal sholat disimpan per bulan, sehingga beranda, halaman Sholat, dan alarm tetap jalan tanpa internet.</li>
+                        <li>Doa dan surah yang pernah dibuka tersimpan otomatis.</li>
+                        <li>Simpan semua surah atau 604 halaman mushaf lewat Pengaturan &gt; Offline.</li>
+                        <li>Audio murottal, deteksi alamat lokasi, dan hadits yang belum pernah dibuka tetap membutuhkan internet.</li>
+                    </ul>
+                </section>
+
+                {/* Teknologi */}
                 <section id="tech-stack" className="mb-12 md:mb-20 pt-8 border-t border-slate-100">
-                    <h2 className="text-xl md:text-3xl font-bold text-slate-900 mb-6">Technology Stack</h2>
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 md:p-8 shadow-sm hover:shadow-md transition-shadow">
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-xs md:text-base">
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Framework:</strong> Next.js 16</li>
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Style:</strong> Tailwind CSS</li>
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Runtime:</strong> Capacitor v7</li>
-                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> <strong>Update:</strong> Simple Notifier (Fetch API)</li>
-                        </ul>
+                    <h2 className="text-xl md:text-3xl font-bold mb-6">Teknologi</h2>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs md:text-base text-slate-700">
+                        <li><strong>Framework:</strong> Next.js 16 (static export)</li>
+                        <li><strong>Tampilan:</strong> Tailwind CSS, tema berbasis variabel warna</li>
+                        <li><strong>Aplikasi Android:</strong> Capacitor 8</li>
+                        <li><strong>Offline:</strong> Service Worker + penyimpanan lokal</li>
+                        <li><strong>Data:</strong> equran.id, quran.com, myquran.com, hadis-api-id</li>
+                        <li><strong>Mushaf & font:</strong> Kemenag RI (LPMQ), King Saud University</li>
+                    </ul>
+                </section>
+
+                {/* Riwayat versi */}
+                <section id="changelog" className="mb-12 md:mb-20 pt-8 border-t border-slate-100">
+                    <h2 className="text-xl md:text-3xl font-bold mb-6 md:mb-10">Riwayat Versi</h2>
+                    <div className="space-y-8 md:space-y-10">
+                        {CHANGELOG.map((entry, i) => (
+                            <div key={entry.version} className={`border-l-4 pl-4 md:pl-6 py-1 ${i === 0 ? "border-emerald-500" : "border-slate-200"}`}>
+                                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
+                                    <h3 className="text-lg md:text-2xl font-bold">v{entry.version}</h3>
+                                    <span className="text-[11px] md:text-xs text-slate-500">{entry.date}</span>
+                                    {i === 0 && <span className="text-[11px] font-semibold text-emerald-600">Terbaru</span>}
+                                </div>
+                                <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700 leading-relaxed">
+                                    {entry.items.map((it) => (
+                                        <li key={it}>{it}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
                     </div>
                 </section>
 
-                {/* Changelog Section */}
-                <section id="changelog" className="scroll-mt-32">
-                    <h2 className="text-xl md:text-3xl font-bold text-slate-900 mb-6 md:mb-10 flex items-center gap-3">
-                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-500 rounded-full"></span>
-                        Changelog
-                    </h2>
-
-                    <div className="space-y-8 md:space-y-12 border-l-2 border-slate-100 pl-4 md:pl-8 ml-2">
-                        {/* v1.4 */}
-                        <div className="border-l-4 border-indigo-600 pl-4 md:pl-6 py-1">
-                            <div className="flex items-baseline gap-3 mb-2">
-                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.4 (Fresh Start)</h3>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">30 Jan 2026</span>
-                            </div>
-                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
-                                <li><strong>Architecture Refresh:</strong> Transisi dari Auto-OTA yang tidak stabil ke Manual Update Notification yang handal.</li>
-                                <li><strong>Network Logic Update:</strong> Fix "Response Error" & SSL issues dengan menggunakan Native JS Fetch.</li>
-                                <li><strong>User Experience:</strong> Perbaikan minor pada navigasi dan dokumentasi.</li>
-                            </ul>
-                        </div>
-                        {/* v1.2.0 */}
-                        {/* v1.2.2 */}
-                        <div className="border-l-4 border-indigo-500 pl-4 md:pl-6 py-1">
-                            <div className="flex items-baseline gap-3 mb-2">
-                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.2.2</h3>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">18 Jan 2026</span>
-                            </div>
-                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
-                                <li><strong>Audio Fix:</strong> Adzan sound now plays full duration (54s) & fixed caching issue.</li>
-                                <li><strong>System Info:</strong> Native version code updated to match Web version.</li>
-                                <li><strong>Maintenance:</strong> Clean build architecture for smaller size.</li>
-                            </ul>
-                        </div>
-
-                        {/* v1.2.0 */}
-                        <div className="border-l-4 border-slate-300 pl-4 md:pl-6 py-1 opacity-75 hover:opacity-100 transition-opacity">
-                            <div className="flex items-baseline gap-3 mb-2">
-                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.2.0</h3>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">18 Jan 2026</span>
-                            </div>
-                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
-                                <li><strong>Major Feature:</strong> Complete Hadits System revamp with filters & search.</li>
-                                <li><strong>Major Feature:</strong> Documentation integrated directly into the application.</li>
-                                <li><strong>Optimization:</strong> Critical fix for Doa Harian layout & scrolling.</li>
-                            </ul>
-                        </div>
-
-                        {/* v1.1.8 */}
-                        <div className="border-l-4 border-slate-300 pl-4 md:pl-6 py-1 opacity-75 hover:opacity-100 transition-opacity">
-                            <div className="flex items-baseline gap-3 mb-2">
-                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.1.8</h3>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">17 Jan 2026</span>
-                            </div>
-                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
-                                <li><strong>New Feature:</strong> Added direct "Download App" button.</li>
-                                <li><strong>Documentation:</strong> Integrated docs within app.</li>
-                                <li><strong>Fix:</strong> Corrected Juz 31 logic.</li>
-                            </ul>
-                        </div>
-
-                        {/* v1.1.6 */}
-                        <div className="border-l-4 border-slate-200 pl-4 md:pl-6 py-1">
-                            <div className="flex items-baseline gap-3 mb-2">
-                                <h3 className="text-lg md:text-2xl font-bold text-slate-900">v1.1.6</h3>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">15 Jan 2026</span>
-                            </div>
-                            <ul className="list-disc ml-4 space-y-1 text-xs md:text-base text-slate-700">
-                                <li>Redesigned Hadits UI (Card based).</li>
-                                <li>Scrollable Wisdom Card.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Privacy */}
+                {/* Privasi */}
                 <section id="privacy" className="pt-8 border-t border-slate-100">
-                    <h2 className="text-xl md:text-3xl font-bold text-slate-900 mb-4">Privacy Policy</h2>
+                    <h2 className="text-xl md:text-3xl font-bold mb-4">Privasi</h2>
                     <p className="text-xs md:text-base text-slate-600 leading-relaxed">
-                        Data lokasi, bookmark, dan pengaturan tersimpan secara lokal di perangkat Anda. Kami tidak mengumpulkan data pribadi ke server eksternal. Aplikasi ini aman dan menghormati privasi pengguna.
+                        Bookmark, pengaturan, alarm, dan riwayat bacaan tersimpan di perangkat Anda. Aplikasi tidak memiliki akun dan tidak mengumpulkan data pribadi.
+                        Saat Anda memakai deteksi lokasi, koordinat dikirim ke layanan peta OpenStreetMap hanya untuk membaca nama wilayah, lalu dicocokkan dengan daftar kota jadwal sholat.
                     </p>
                 </section>
 
-                <footer className="mt-16 md:mt-24 pt-8 border-t border-slate-100 text-slate-400 text-[10px] md:text-sm">
-                    &copy; 2026 Portal Ibadah.
-                </footer>
+                <footer className="mt-16 md:mt-24 pt-8 border-t border-slate-100 text-slate-500 text-[11px] md:text-sm">&copy; 2026 Portal Ibadah.</footer>
             </main>
         </div>
     );

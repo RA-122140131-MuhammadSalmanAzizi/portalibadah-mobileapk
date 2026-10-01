@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Camera, Image, BellRing, Smartphone, Trash2, ChevronRight, ChevronDown, Moon, Sun, BookOpen, Info, Check, HandHeart } from "lucide-react";
 import { APP_THEMES, AppTheme, applyAppTheme, getAppTheme } from "@/lib/theme";
 import OfflineSettings from "@/components/OfflineSettings";
+import { APP_VERSION, APK_DOWNLOAD_URL } from "@/lib/version";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -260,7 +261,7 @@ export default function SettingsPage() {
                             <ChevronRight className="w-5 h-5 text-slate-300" />
                         </Link>
                         <a
-                            href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
+                            href={APK_DOWNLOAD_URL}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
@@ -271,7 +272,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="text-left">
                                     <p className="font-medium text-slate-900">Download APK Terbaru</p>
-                                    <p className="text-xs text-slate-500">Halaman rilis di GitHub</p>
+                                    <p className="text-xs text-slate-500">Langsung mengunduh file APK</p>
                                 </div>
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-300" />
@@ -320,7 +321,7 @@ export default function SettingsPage() {
                 </section>
 
                 <div className="text-center pt-8 pb-4">
-                    <p className="text-xs text-slate-400">Portal Ibadah v1.5.1</p>
+                    <p className="text-xs text-slate-400">Portal Ibadah v{APP_VERSION}</p>
                 </div>
 
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Smartphone, Monitor, Apple, Share } from 'lucide-react';
 import LogoMark from '@/components/LogoMark';
+import { APK_DOWNLOAD_URL } from '@/lib/version';
 
 type Platform = 'ios' | 'android' | 'desktop' | 'unknown';
 
@@ -89,7 +90,7 @@ export default function InstallPrompt() {
     };
 
     const handleDownloadAPK = () => {
-        window.open('https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases/latest', '_blank');
+        window.open(APK_DOWNLOAD_URL, '_blank');
         handleDismiss();
     };
 

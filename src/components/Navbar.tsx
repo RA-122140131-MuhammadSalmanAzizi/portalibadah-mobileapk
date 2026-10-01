@@ -24,6 +24,7 @@ import { Dialog } from '@capacitor/dialog';
 import { isReaderRoute } from "@/components/BottomNav";
 import LogoMark from "@/components/LogoMark";
 import PrayerIcon from "@/components/icons/PrayerIcon";
+import { APK_DOWNLOAD_URL } from "@/lib/version";
 
 const navLinks = [
     { href: "/", label: "Beranda", icon: Home },
@@ -155,7 +156,7 @@ export default function Navbar() {
 
                                                 {/* APK Option */}
                                                 <a
-                                                    href="https://github.com/RA-122140131-MuhammadSalmanAzizi/portalibadah-mobileapk/releases"
+                                                    href={APK_DOWNLOAD_URL}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={() => setShowDownloadMenu(false)}
