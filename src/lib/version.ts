@@ -10,6 +10,8 @@ export const APK_DOWNLOAD_URL = "https://github.com/RA-122140131-MuhammadSalmanA
 
 // Ringkasan perubahan versi terbaru (dipakai di Tentang Aplikasi dan Dokumentasi)
 export const WHATS_NEW: { title: string; desc: string }[] = [
+    { title: "Murottal seperti pemutar musik", desc: "Kontrol putar/jeda/berikutnya muncul di notifikasi dan layar kunci, audio tetap jalan saat layar mati, dan berhenti saat aplikasi ditutup." },
+    { title: "Audio mushaf per halaman", desc: "Tombol Putar/Jeda berlabel, kotak audio melayang dengan mode Sekali/Lanjut/Ulangi, dan halaman ikut pindah saat audio berlanjut." },
     { title: "Tampilan baru", desc: "Tema Gelap, Sepia, dan Terang beraksen coklat, beranda ringkas, dan navigasi bawah." },
     { title: "Al-Qur'an lebih nyaman", desc: "Font Mushaf Standar Indonesia (LPMQ), mode Per Ayat atau Per Halaman, tafsir per ayat, dan ulangi murottal." },
     { title: "Sholat & kiblat", desc: "Adzan Ahmad Nafees untuk alarm, deteksi lokasi yang lebih cerdas, dan kompas kiblat." },

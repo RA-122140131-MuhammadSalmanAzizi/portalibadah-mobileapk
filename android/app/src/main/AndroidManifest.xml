@@ -31,6 +31,11 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+        <!-- Layanan media (notifikasi pemutar murottal) ikut berhenti saat aplikasi ditutup -->
+        <service
+            android:name="com.capgo.mediasession.MediaSessionService"
+            android:stopWithTask="true"
+            tools:node="merge" />
     </application>
 
     <!-- Permissions -->

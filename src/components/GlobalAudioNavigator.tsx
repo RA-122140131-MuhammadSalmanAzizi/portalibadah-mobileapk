@@ -13,9 +13,10 @@ export default function GlobalAudioNavigator() {
     const isLoadingRef = useRef(false);
 
     useEffect(() => {
-        const handleAutoplay = async () => {
+        // force = true: diminta langsung (tombol "berikutnya" di notifikasi), tanpa melihat mode
+        const handleAutoplay = async (force = false) => {
             // Only handle if playbackMode is autoplay
-            if (playbackMode !== 'autoplay') return;
+            if (!force && playbackMode !== 'autoplay') return;
 
             // Prevent duplicate calls
             if (isLoadingRef.current) return;
@@ -76,8 +77,14 @@ export default function GlobalAudioNavigator() {
             }
         };
 
-        window.addEventListener('audio-queue-ended', handleAutoplay);
-        return () => window.removeEventListener('audio-queue-ended', handleAutoplay);
+        const onQueueEnded = () => handleAutoplay(false);
+        const onRequestNext = () => handleAutoplay(true);
+        window.addEventListener('audio-queue-ended', onQueueEnded);
+        window.addEventListener('audio-request-next', onRequestNext);
+        return () => {
+            window.removeEventListener('audio-queue-ended', onQueueEnded);
+            window.removeEventListener('audio-request-next', onRequestNext);
+        };
     }, [playbackMode, playQueue]);
 
     // Save current track meta to sessionStorage whenever it changes

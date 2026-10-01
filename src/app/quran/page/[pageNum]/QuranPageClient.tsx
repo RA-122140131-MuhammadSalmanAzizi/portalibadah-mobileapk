@@ -209,9 +209,30 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const currentPageRef = useRef(initialPage);
 
-    const { playQueue, pause, toggle, isPlaying, currentTrack, playbackMode, setPlaybackMode } = useAudio();
+    const { playQueue, pause, toggle, stop, isPlaying, currentTrack, playbackMode, setPlaybackMode } = useAudio();
     const isPageActive = currentTrack?.meta?.page === currentPage;
     const isPagePlaying = isPlaying && isPageActive;
+    // Halaman mushaf yang audionya sedang diputar (bisa berbeda dengan halaman yang dilihat)
+    const audioPage: number | null = currentTrack?.meta?.page ?? null;
+
+    // Audio lanjut ke halaman berikutnya: tampilan ikut pindah, selama pengguna sedang
+    // melihat halaman yang diputar (tidak mengganggu bila sedang membuka halaman lain)
+    const prevAudioPage = useRef<number | null>(null);
+    useEffect(() => {
+        const prevPage = prevAudioPage.current;
+        prevAudioPage.current = audioPage;
+        if (audioPage && prevPage && audioPage !== prevPage && currentPageRef.current === prevPage) {
+            setCurrentPage(audioPage);
+        }
+    }, [audioPage]);
+
+    const cyclePlaybackMode = () => {
+        const order: PlaybackMode[] = ["once", "autoplay", "repeat"];
+        const nextMode = order[(order.indexOf(playbackMode) + 1) % order.length];
+        setPlaybackMode(nextMode);
+        const label = { once: "Putar sekali", autoplay: "Lanjut ke halaman berikutnya", repeat: "Ulangi halaman ini" }[nextMode];
+        showToast(label);
+    };
 
     // Kontrol muncul saat layar disentuh, lalu memudar setelah 3 detik tanpa sentuhan
     const HIDE_DELAY = 3000;
@@ -486,9 +507,10 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                     <button
                         onClick={handlePlayToggle}
                         aria-label={isPagePlaying ? "Jeda audio halaman" : "Putar audio halaman"}
-                        className={`${iconBtn} ${isPageActive ? "text-emerald-600" : ""}`}
+                        className="h-9 px-3.5 mr-1 flex items-center gap-1.5 rounded-full bg-emerald-500 text-white text-sm font-semibold shrink-0 active:scale-95 transition-transform"
                     >
-                        {isPagePlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5" />}
+                        {isPagePlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                        <span>{isPagePlaying ? "Jeda" : "Putar"}</span>
                     </button>
                     <button onClick={() => setSheet("translation")} aria-label="Terjemahan dan tafsir" className={iconBtn}>
                         <Languages className="w-5 h-5" />
@@ -595,6 +617,48 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
                     </p>
                 </div>
             </footer>
+
+            {/* ===== Kotak audio melayang ===== */}
+            {audioPage && (() => {
+                const mode = PLAYBACK_MODES.find((m) => m.id === playbackMode) ?? PLAYBACK_MODES[0];
+                const ModeIcon = mode.icon;
+                const verse = String(currentTrack?.meta?.verseKey || "").split(":")[1];
+                return (
+                    <div
+                        className="fixed inset-x-0 z-30 px-3 transition-[bottom] duration-300"
+                        style={{ bottom: chromeVisible ? "calc(env(safe-area-inset-bottom) + 84px)" : "calc(env(safe-area-inset-bottom) + 12px)" }}
+                    >
+                        <div className="max-w-3xl mx-auto flex items-center gap-2 p-2 rounded-2xl bg-slate-100 border border-slate-200 shadow-lg shadow-black/20">
+                            <button
+                                onClick={toggle}
+                                aria-label={isPlaying ? "Jeda" : "Putar"}
+                                className="w-11 h-11 shrink-0 rounded-xl bg-emerald-500 text-white flex items-center justify-center"
+                            >
+                                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 ml-0.5 fill-current" />}
+                            </button>
+                            <button onClick={() => audioPage !== currentPage && goTo(audioPage)} className="flex-1 min-w-0 text-left">
+                                <p className="text-sm font-semibold truncate">
+                                    {titleOfPage(audioPage)}{verse ? `, ayat ${verse}` : ""}
+                                </p>
+                                <p className="text-xs text-slate-500 truncate">
+                                    Hal. {audioPage}{audioPage !== currentPage ? " \u00b7 ketuk untuk membuka" : ` \u00b7 ${RECITER}`}
+                                </p>
+                            </button>
+                            <button
+                                onClick={cyclePlaybackMode}
+                                aria-label={`Mode audio: ${mode.label}. Ketuk untuk mengganti`}
+                                className={`h-11 px-2.5 shrink-0 rounded-xl flex flex-col items-center justify-center gap-0.5 ${playbackMode === "once" ? "text-slate-500" : "bg-emerald-500/15 text-emerald-600"}`}
+                            >
+                                <ModeIcon className="w-[18px] h-[18px]" />
+                                <span className="text-[10px] font-semibold leading-none">{mode.label}</span>
+                            </button>
+                            <button onClick={stop} aria-label="Hentikan audio" className="w-10 h-10 flex items-center justify-center text-slate-500">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ===== Sheet terjemahan ===== */}
             {sheet === "translation" && (
@@ -708,7 +772,7 @@ export default function QuranPageClient({ pageNum }: QuranPageClientProps) {
             {insight && <AyahInsightSheet ayah={insight} onClose={() => setInsight(null)} />}
 
             {toast && (
-                <div role="status" className="fixed left-1/2 -translate-x-1/2 bottom-28 z-[60] px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in">
+                <div role="status" style={{ bottom: audioPage ? "calc(env(safe-area-inset-bottom) + 172px)" : "calc(env(safe-area-inset-bottom) + 112px)" }} className="fixed left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-lg animate-fade-in">
                     {toast}
                 </div>
             )}

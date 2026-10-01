@@ -28,6 +28,14 @@ const CHANGELOG: { version: string; date: string; items: string[] }[] = [
         version: APP_VERSION,
         date: RELEASE_DATE,
         items: [
+            "Murottal tampil di notifikasi dan layar kunci (putar, jeda, berikutnya, sebelumnya), tetap berjalan saat layar mati, dan berhenti saat aplikasi ditutup.",
+            "Mode per halaman: tombol Putar/Jeda berlabel, kotak audio melayang dengan mode Sekali/Lanjut/Ulangi, dan halaman ikut pindah saat audio berlanjut.",
+        ],
+    },
+    {
+        version: "1.5.1",
+        date: "1 Oktober 2026",
+        items: [
             "Desain ulang menyeluruh: tema Gelap/Sepia/Terang, beranda ringkas, navigasi bawah, tarik untuk memuat ulang.",
             "Al-Qur'an: font LPMQ, mode Per Ayat atau Per Halaman, tafsir per ayat, ulangi murottal, mushaf tanpa loading berulang.",
             "Sholat: adzan Ahmad Nafees, deteksi lokasi membaca alamat lengkap, pengingat tambahan lewat modal, dan kompas kiblat.",
@@ -183,6 +191,7 @@ export default function DocumentationPage() {
                         <li><strong>Aplikasi Android:</strong> Capacitor 8</li>
                         <li><strong>Offline:</strong> Service Worker + penyimpanan lokal</li>
                         <li><strong>Data:</strong> equran.id, quran.com, myquran.com, hadis-api-id</li>
+                        <li><strong>Pemutar media:</strong> @capgo/capacitor-media-session (open source, MPL-2.0)</li>
                         <li><strong>Mushaf & font:</strong> Kemenag RI (LPMQ), King Saud University</li>
                     </ul>
                 </section>

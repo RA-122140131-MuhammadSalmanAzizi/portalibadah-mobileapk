@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
+import { MediaSession } from "@capgo/capacitor-media-session";
 
 interface Track {
     url: string;
@@ -26,6 +27,10 @@ interface AudioContextType {
     currentTime: number;
     playbackMode: PlaybackMode;
     setPlaybackMode: (mode: PlaybackMode) => void;
+    next: () => void;
+    prev: () => void;
+    hasNext: boolean;
+    hasPrev: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -195,6 +200,86 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    // ---- Lompat antar track (dipakai tombol di notifikasi / layar kunci) ----
+    const queueRef = useRef<Track[]>([]);
+    const indexRef = useRef(-1);
+    useEffect(() => {
+        queueRef.current = queue;
+        indexRef.current = currentIndex;
+    }, [queue, currentIndex]);
+
+    const playIndex = useCallback((i: number) => {
+        const track = queueRef.current[i];
+        if (!track || !audioRef.current) return;
+        setCurrentIndex(i);
+        setCurrentTrack(track);
+        audioRef.current.src = track.url;
+        audioRef.current.play().catch(console.error);
+    }, []);
+
+    const next = useCallback(() => {
+        const i = indexRef.current;
+        if (i < queueRef.current.length - 1) playIndex(i + 1);
+        // Akhir antrean: minta halaman/surah berikutnya (ditangani GlobalAudioNavigator)
+        else window.dispatchEvent(new Event('audio-request-next'));
+    }, [playIndex]);
+
+    const prev = useCallback(() => {
+        const i = indexRef.current;
+        if ((audioRef.current?.currentTime ?? 0) > 3 || i <= 0) {
+            if (audioRef.current) audioRef.current.currentTime = 0;
+        } else {
+            playIndex(i - 1);
+        }
+    }, [playIndex]);
+
+    // ---- Kontrol di notifikasi & layar kunci (Android: foreground service; web: Media Session API) ----
+    const handlersRef = useRef({ toggle, pause, stop, next, prev, seek });
+    useEffect(() => {
+        handlersRef.current = { toggle, pause, stop, next, prev, seek };
+    });
+
+    useEffect(() => {
+        const h = handlersRef;
+        const set = (action: Parameters<typeof MediaSession.setActionHandler>[0]['action'], fn: (d: { seekTime?: number | null }) => void) =>
+            MediaSession.setActionHandler({ action }, fn).catch(() => { });
+        set('play', () => { if (audioRef.current?.paused) h.current.toggle(); });
+        set('pause', () => h.current.pause());
+        set('stop', () => h.current.stop());
+        set('nexttrack', () => h.current.next());
+        set('previoustrack', () => h.current.prev());
+        set('seekto', (d) => { if (typeof d.seekTime === 'number') h.current.seek(d.seekTime); });
+    }, []);
+
+    useEffect(() => {
+        if (!currentTrack) {
+            MediaSession.setPlaybackState({ playbackState: 'none' }).catch(() => { });
+            return;
+        }
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        MediaSession.setMetadata({
+            title: currentTrack.title,
+            artist: currentTrack.artist,
+            album: currentTrack.album || 'Portal Ibadah',
+            artwork: [{ src: `${origin}/images/logo-app.png`, sizes: '192x192', type: 'image/png' }],
+        }).catch(() => { });
+    }, [currentTrack]);
+
+    useEffect(() => {
+        if (!currentTrack) return;
+        MediaSession.setPlaybackState({ playbackState: isPlaying ? 'playing' : 'paused' }).catch(() => { });
+    }, [isPlaying, currentTrack]);
+
+    // Posisi audio untuk progress bar di notifikasi (diperbarui tiap beberapa detik)
+    const lastPosUpdate = useRef(0);
+    useEffect(() => {
+        if (!currentTrack || !duration || !isFinite(duration)) return;
+        const now = Date.now();
+        if (now - lastPosUpdate.current < 2000) return;
+        lastPosUpdate.current = now;
+        MediaSession.setPositionState({ duration, position: Math.min(currentTime, duration), playbackRate: 1 }).catch(() => { });
+    }, [currentTime, duration, currentTrack]);
+
     return (
         <AudioContext.Provider value={{
             isPlaying,
@@ -208,7 +293,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             duration,
             currentTime,
             playbackMode,
-            setPlaybackMode
+            setPlaybackMode,
+            next,
+            prev,
+            hasNext: currentIndex < queue.length - 1,
+            hasPrev: currentIndex > 0,
         }}>
             {children}
         </AudioContext.Provider>
