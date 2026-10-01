@@ -19,7 +19,7 @@ function walk(dir) {
 
 // Menu utama (dokumen + data navigasi) dan halaman cadangan offline
 const routes = ["/", "/quran", "/sholat", "/kiblat", "/doa", "/hadits", "/settings", "/about"];
-const urls = new Set(["/offline.html", "/manifest.webmanifest", "/images/logo-app.png", "/images/logo-mask.png", "/images/masjid.webp", "/fonts/LPMQ-IsepMisbah.woff2"]);
+const urls = new Set(["/offline.html", "/manifest.webmanifest", "/images/logo-app.png", "/images/logo-mask.png", "/images/masjid.webp", "/images/media-artwork.png", "/fonts/LPMQ-IsepMisbah.woff2"]);
 for (const r of routes) {
     urls.add(r);
     urls.add(r === "/" ? "/index.txt" : `${r}.txt`);

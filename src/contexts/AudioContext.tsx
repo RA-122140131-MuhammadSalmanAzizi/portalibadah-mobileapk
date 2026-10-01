@@ -29,11 +29,37 @@ interface AudioContextType {
     setPlaybackMode: (mode: PlaybackMode) => void;
     next: () => void;
     prev: () => void;
+    appendToQueue: (tracks: Track[]) => void;
     hasNext: boolean;
     hasPrev: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
+
+// Sampul untuk notifikasi & layar kunci. Dikirim sebagai data base64 karena bagian native Android
+// tidak bisa membuka alamat https://localhost milik WebView. Latar gelap membuat MIUI dkk.
+// memilih warna kartu gelap sehingga teks putih tetap terbaca.
+let artworkPromise: Promise<string | null> | null = null;
+function getArtworkDataUrl(): Promise<string | null> {
+    if (!artworkPromise) {
+        artworkPromise = fetch('/images/media-artwork.png')
+            .then((r) => (r.ok ? r.blob() : Promise.reject()))
+            .then(
+                (blob) =>
+                    new Promise<string | null>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    })
+            )
+            .catch(() => {
+                artworkPromise = null;
+                return null;
+            });
+    }
+    return artworkPromise;
+}
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
     const [isPlaying, setIsPlaying] = useState(false);
@@ -153,6 +179,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     // Play a queue of tracks
+    // Tambah track di akhir antrean tanpa mengganggu yang sedang diputar
+    const appendToQueue = useCallback((tracks: Track[]) => {
+        if (tracks.length) setQueue((q) => [...q, ...tracks]);
+    }, []);
+
     const playQueue = useCallback(async (tracks: Track[], startIndex: number = 0) => {
         if (!audioRef.current || tracks.length === 0) return;
 
@@ -256,13 +287,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             MediaSession.setPlaybackState({ playbackState: 'none' }).catch(() => { });
             return;
         }
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        MediaSession.setMetadata({
-            title: currentTrack.title,
-            artist: currentTrack.artist,
-            album: currentTrack.album || 'Portal Ibadah',
-            artwork: [{ src: `${origin}/images/logo-app.png`, sizes: '192x192', type: 'image/png' }],
-        }).catch(() => { });
+        let cancelled = false;
+        getArtworkDataUrl().then((art) => {
+            if (cancelled) return;
+            MediaSession.setMetadata({
+                title: currentTrack.title,
+                artist: currentTrack.artist,
+                album: currentTrack.album || 'Portal Ibadah',
+                artwork: art ? [{ src: art, sizes: '384x384', type: 'image/png' }] : [],
+            }).catch(() => { });
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [currentTrack]);
 
     useEffect(() => {
@@ -296,6 +333,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             setPlaybackMode,
             next,
             prev,
+            appendToQueue,
             hasNext: currentIndex < queue.length - 1,
             hasPrev: currentIndex > 0,
         }}>

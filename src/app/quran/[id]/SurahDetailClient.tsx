@@ -260,6 +260,17 @@ export default function SurahDetailClient({ surah }: SurahDetailClientProps) {
         }
     }, [playingAyat, isPlaying]);
 
+    // Audio lanjut ke surah berikutnya lewat antrean: tampilan ikut pindah (mode Lanjut)
+    const prevAudioSurah = useRef<number | null>(null);
+    useEffect(() => {
+        const s = currentTrack?.meta?.surahId ?? null;
+        const prevS = prevAudioSurah.current;
+        prevAudioSurah.current = s;
+        if (s && prevS === surah.nomor && s === surah.nomor + 1 && playbackMode === "autoplay" && !currentTrack?.meta?.page) {
+            router.push(`/quran/${s}`);
+        }
+    }, [currentTrack, surah.nomor, playbackMode, router]);
+
     // Auto-play surah berikutnya (mode "Lanjut")
     useEffect(() => {
         const handleQueueEnded = () => {

@@ -9,7 +9,7 @@ import { getQuranPageData, getSurahById } from "@/lib/api";
  * DOES NOT navigate - plays audio in background without changing user's view
  */
 export default function GlobalAudioNavigator() {
-    const { playbackMode, playQueue, currentTrack } = useAudio();
+    const { playbackMode, playQueue, currentTrack, hasNext, appendToQueue } = useAudio();
     const isLoadingRef = useRef(false);
 
     useEffect(() => {
@@ -86,6 +86,53 @@ export default function GlobalAudioNavigator() {
             window.removeEventListener('audio-request-next', onRequestNext);
         };
     }, [playbackMode, playQueue]);
+
+    // Mode "Lanjut": begitu track terakhir di antrean mulai diputar, ambil halaman/surah berikutnya
+    // dan tambahkan ke antrean. Pergantian jadi tanpa unduhan saat itu juga, sehingga tetap
+    // berjalan ketika layar mati (iOS/PWA sering menahan unduhan di latar belakang).
+    const preparedFor = useRef<string | null>(null);
+    useEffect(() => {
+        if (playbackMode !== 'autoplay' || hasNext || !currentTrack?.meta) return;
+        const meta = currentTrack.meta;
+        const key = meta.page ? `page:${meta.page}` : meta.surahId ? `surah:${meta.surahId}` : null;
+        if (!key || preparedFor.current === key) return;
+        preparedFor.current = key;
+
+        (async () => {
+            try {
+                if (meta.page && meta.page < 604) {
+                    const nextPage = meta.page + 1;
+                    const data = await getQuranPageData(nextPage);
+                    const tracks = (data?.verses || [])
+                        .filter((v) => v.audioUrl)
+                        .map((v) => ({
+                            url: v.audioUrl || "",
+                            title: `QS. ${data?.meta.surahs[0]?.name || 'Quran'}: ${v.verseKey.split(':')[1]}`,
+                            artist: "Mishary Rashid Alafasy",
+                            album: "Portal Ibadah",
+                            meta: { page: nextPage, verseKey: v.verseKey },
+                        }));
+                    appendToQueue(tracks);
+                } else if (meta.surahId && meta.surahId < 114 && !meta.repeat) {
+                    const nextSurah = await getSurahById(meta.surahId + 1);
+                    const url = nextSurah?.audioFull?.['05'] || Object.values(nextSurah?.audioFull || {})[0];
+                    if (url) {
+                        appendToQueue([{
+                            url,
+                            title: `QS. ${nextSurah!.namaLatin}`,
+                            artist: "Mishary Rashid Alafasy",
+                            album: "Portal Ibadah",
+                            meta: { surahId: meta.surahId + 1 },
+                        }]);
+                    }
+                }
+            } catch (e) {
+                // Gagal menyiapkan: pergantian tetap ditangani saat antrean habis (audio-queue-ended)
+                preparedFor.current = null;
+                console.error('Prepare next audio failed:', e);
+            }
+        })();
+    }, [currentTrack, hasNext, playbackMode, appendToQueue]);
 
     // Save current track meta to sessionStorage whenever it changes
     useEffect(() => {

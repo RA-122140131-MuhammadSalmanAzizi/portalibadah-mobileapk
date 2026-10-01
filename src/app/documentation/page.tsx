@@ -28,6 +28,14 @@ const CHANGELOG: { version: string; date: string; items: string[] }[] = [
         version: APP_VERSION,
         date: RELEASE_DATE,
         items: [
+            "Kartu pemutar di notifikasi kini terbaca (latar gelap dengan logo) di HP Xiaomi/MIUI dan lainnya.",
+            "Kontrol murottal tampil di layar kunci.",
+        ],
+    },
+    {
+        version: "1.6.0",
+        date: "1 Oktober 2026",
+        items: [
             "Murottal tampil di notifikasi dan layar kunci (putar, jeda, berikutnya, sebelumnya), tetap berjalan saat layar mati, dan berhenti saat aplikasi ditutup.",
             "Mode per halaman: tombol Putar/Jeda berlabel, kotak audio melayang dengan mode Sekali/Lanjut/Ulangi, dan halaman ikut pindah saat audio berlanjut.",
         ],
